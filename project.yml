@@ -23,6 +23,8 @@ targets:
     dependencies:
       - target: PulseFloatCore
         embed: true
+      - target: PulseFloatScene
+        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.victorhuang.PulseFloat
@@ -43,6 +45,43 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: com.victorhuang.PulseFloatCore
+  PulseFloatScene:
+    type: framework
+    platform: macOS
+    sources: [PulseFloatScene]
+    dependencies:
+      - target: PulseFloatCore
+      - sdk: SceneKit.framework
+      - sdk: Metal.framework
+      - sdk: QuartzCore.framework
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.victorhuang.PulseFloatScene
+  PulseFloatSceneTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [PulseFloatSceneTests]
+    dependencies:
+      - target: PulseFloatScene
+        embed: true
+      - target: PulseFloatCore
+        embed: true
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.victorhuang.PulseFloatSceneTests
+  PulseFloatShots:
+    type: tool
+    platform: macOS
+    sources: [Tools/PulseFloatShots]
+    dependencies:
+      - target: PulseFloatScene
+      - target: PulseFloatCore
+    settings:
+      base:
+        LD_RUNPATH_SEARCH_PATHS: "@executable_path"
+        PRODUCT_BUNDLE_IDENTIFIER: com.victorhuang.PulseFloatShots
   PulseFloatCoreTests:
     type: bundle.unit-test
     platform: macOS
@@ -67,3 +106,13 @@ schemes:
         PulseFloatCore: all
     test:
       targets: [PulseFloatCoreTests]
+  PulseFloatScene:
+    build:
+      targets:
+        PulseFloatScene: all
+    test:
+      targets: [PulseFloatSceneTests]
+  PulseFloatShots:
+    build:
+      targets:
+        PulseFloatShots: all

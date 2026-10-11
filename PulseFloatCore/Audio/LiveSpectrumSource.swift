@@ -32,6 +32,8 @@ public final class LiveSpectrumSource: SpectrumSource {
     private let pipeline: SpectrumPipeline
     private let analyzer: SpectrumAnalyzer
     private var scratch: [Float]
+    private var sideScratch: [Float]
+    private let features = AudioFeatureExtractor()
     private let fftSize = 4096
     private var silentSeconds: Double
     private var staleSeconds: Double = 0
@@ -44,6 +46,7 @@ public final class LiveSpectrumSource: SpectrumSource {
         pipeline = SpectrumPipeline(config: config)
         analyzer = SpectrumAnalyzer(fftSize: fftSize, sampleRate: sampleRate, layout: pipeline.bandLayout)
         scratch = [Float](repeating: 0, count: fftSize)
+        sideScratch = [Float](repeating: 0, count: fftSize)
         silentSeconds = Self.silenceHoldSeconds
     }
 
@@ -81,9 +84,12 @@ public final class LiveSpectrumSource: SpectrumSource {
 
         var peak: Float = 0
         let sampleCount = fftSize
+        let ring = ring
         scratch.withUnsafeMutableBufferPointer { buffer in
             guard let base = buffer.baseAddress else { return }
-            ring.copyLatest(into: base, count: sampleCount)
+            sideScratch.withUnsafeMutableBufferPointer { sideBuffer in
+                _ = ring.copyLatest(into: base, side: sideBuffer.baseAddress, count: sampleCount)
+            }
             vDSP_maxmgv(base, 1, &peak, vDSP_Length(sampleCount))
         }
         let levelDb = peak > 0 ? 20 * log10f(peak) : -160
@@ -105,6 +111,18 @@ public final class LiveSpectrumSource: SpectrumSource {
                 pipeline.withRawDb { raw in analyzer.analyze(samples: samples, into: raw) }
             }
         }
-        return pipeline.process(dt: step)
+        var frame = pipeline.process(dt: step)
+        let analyzer = analyzer
+        let features = features
+        let centers = pipeline.bandLayout.center
+        frame.features = scratch.withUnsafeBufferPointer { mid in
+            sideScratch.withUnsafeBufferPointer { side in
+                analyzer.withBinLevels { bins in
+                    features.update(dt: step, audible: audible, binDb: stale ? nil : bins, binHz: analyzer.binHz,
+                                    mid: mid, side: side, bands: frame.values, bandCenters: centers)
+                }
+            }
+        }
+        return frame
     }
 }

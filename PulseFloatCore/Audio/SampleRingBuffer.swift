@@ -1,7 +1,8 @@
 import Foundation
 import Synchronization
 
-/// 單一寫入者（Core Audio IO 執行緒）／單一讀取者（主執行緒）的 lock-free 單聲道 PCM 環形緩衝。
+/// 單一寫入者（Core Audio IO 執行緒）／單一讀取者（主執行緒）的 lock-free PCM 環形緩衝。
+/// 主軌是單聲道 mid = (L+R)/2（頻譜分析用）；另一條同步的 side = (L−R)/2 軌給立體聲寬度與平衡（單聲道輸入時為 0）。
 /// 寫入端不配置記憶體、不上鎖、不碰 actor；讀取端只複製最新的 N 個樣本，不消耗資料。
 public final class SampleRingBuffer: @unchecked Sendable {
     // 安全性：storage 只由唯一的寫入者寫入，寫完後以 release 發布 writeCount；
@@ -12,6 +13,7 @@ public final class SampleRingBuffer: @unchecked Sendable {
     public let capacity: Int
     private let mask: Int
     private let storage: UnsafeMutablePointer<Float>
+    private let sideStorage: UnsafeMutablePointer<Float>
     private let writeCount = Atomic<Int>(0)
 
     /// 建立緩衝；capacity 會向上取到 2 的次方（最少 1024）。只在初始化時配置記憶體。
@@ -22,11 +24,15 @@ public final class SampleRingBuffer: @unchecked Sendable {
         mask = size - 1
         storage = .allocate(capacity: size)
         storage.initialize(repeating: 0, count: size)
+        sideStorage = .allocate(capacity: size)
+        sideStorage.initialize(repeating: 0, count: size)
     }
 
     deinit {
         storage.deinitialize(count: capacity)
         storage.deallocate()
+        sideStorage.deinitialize(count: capacity)
+        sideStorage.deallocate()
     }
 
     /// 至今寫入過的樣本總數（任意執行緒可讀）；主執行緒用來判斷是否有新資料。
@@ -39,7 +45,9 @@ public final class SampleRingBuffer: @unchecked Sendable {
         let start = writeCount.load(ordering: .relaxed)
         var index = skip
         while index < count {
-            storage[(start + index - skip) & mask] = samples[index]
+            let slot = (start + index - skip) & mask
+            storage[slot] = samples[index]
+            sideStorage[slot] = 0
             index += 1
         }
         writeCount.store(start + count - skip, ordering: .releasing)
@@ -60,7 +68,9 @@ public final class SampleRingBuffer: @unchecked Sendable {
                 sum += samples[base + channel]
                 channel += 1
             }
-            storage[(start + frame - skip) & mask] = sum * scale
+            let slot = (start + frame - skip) & mask
+            storage[slot] = sum * scale
+            sideStorage[slot] = channelCount >= 2 ? (samples[base] - samples[base + 1]) * 0.5 : 0
             frame += 1
         }
         writeCount.store(start + frameCount - skip, ordering: .releasing)
@@ -77,7 +87,9 @@ public final class SampleRingBuffer: @unchecked Sendable {
         let start = writeCount.load(ordering: .relaxed)
         var frame = skip
         while frame < frameCount {
-            storage[(start + frame - skip) & mask] = (left[frame] + right[frame]) * 0.5
+            let slot = (start + frame - skip) & mask
+            storage[slot] = (left[frame] + right[frame]) * 0.5
+            sideStorage[slot] = (left[frame] - right[frame]) * 0.5
             frame += 1
         }
         writeCount.store(start + frameCount - skip, ordering: .releasing)
@@ -88,6 +100,12 @@ public final class SampleRingBuffer: @unchecked Sendable {
     /// 回傳實際複製的真實樣本數。不配置記憶體。
     @discardableResult
     public func copyLatest(into destination: UnsafeMutablePointer<Float>, count: Int) -> Int {
+        copyLatest(into: destination, side: nil, count: count)
+    }
+
+    /// 同 `copyLatest(into:count:)`，並把同一段時間的 side 軌複製到 side（nil 時略過）。不配置記憶體。
+    @discardableResult
+    public func copyLatest(into destination: UnsafeMutablePointer<Float>, side: UnsafeMutablePointer<Float>?, count: Int) -> Int {
         guard count > 0 else { return 0 }
         // 寫入者在發布 writeCount 之前就會寫進 storage，所以額外保留 capacity/4 的邊帶給「寫到一半」的區塊
         // （Core Audio 每次 IOProc 的區塊遠小於此）。
@@ -101,12 +119,15 @@ public final class SampleRingBuffer: @unchecked Sendable {
             var index = 0
             while index < padding {
                 destination[index] = 0
+                side?[index] = 0
                 index += 1
             }
             let start = end - copied
             index = 0
             while index < copied {
-                destination[padding + index] = storage[(start + index) & mask]
+                let slot = (start + index) & mask
+                destination[padding + index] = storage[slot]
+                side?[padding + index] = sideStorage[slot]
                 index += 1
             }
             let advanced = writeCount.load(ordering: .acquiring) - end
@@ -119,6 +140,7 @@ public final class SampleRingBuffer: @unchecked Sendable {
             index = 0
             while index < invalid {
                 destination[padding + index] = 0
+                side?[padding + index] = 0
                 index += 1
             }
             copied -= invalid

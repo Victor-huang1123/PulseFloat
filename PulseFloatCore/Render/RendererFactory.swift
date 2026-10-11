@@ -12,6 +12,10 @@ public enum RendererFactory {
         case .constellation: ConstellationRenderer()
         case .mobius: MobiusRenderer(analysis: false)
         case .analysis: MobiusRenderer(analysis: true)
+        // SceneKit 主題的 Core Graphics 備援（沒有 Metal 裝置、或 2D 縮圖時）；正式畫面由 PulseFloatScene 繪製。
+        case .blackHole: RadialRenderer()
+        case .particleSphere: ConstellationRenderer()
+        case .terrain: HUDRenderer()
         }
     }
 }

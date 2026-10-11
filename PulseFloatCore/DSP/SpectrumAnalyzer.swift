@@ -68,6 +68,15 @@ public final class SpectrumAnalyzer {
         binDb.deallocate()
     }
 
+    /// Width of one FFT bin in Hz for the current sampling rate (0 when the rate is invalid).
+    public private(set) var binHz: Double = 0
+
+    /// Lends the per-bin dBFS levels (DC...Nyquist−1, `fftSize / 2` values) computed by the most
+    /// recent `analyze`; −160 before the first analysis. No allocation; call serially on the analysis thread.
+    public func withBinLevels<R>(_ body: (UnsafeBufferPointer<Float>) throws -> R) rethrows -> R {
+        try body(UnsafeBufferPointer(start: binDb, count: binCount))
+    }
+
     /// Rebuilds the Hz-to-bin mapping for `layout` and a sampling rate in Hz.
     /// This method may allocate; call serially between analyses, never concurrently with them.
     /// Nonpositive or nonfinite rates cause analysis to write −160 dBFS.
@@ -76,6 +85,7 @@ public final class SpectrumAnalyzer {
         mappings.removeAll(keepingCapacity: true)
         let binHz = sampleRate / Double(fftSize)
         validSampleRate = binHz.isFinite && binHz > 0
+        self.binHz = validSampleRate ? binHz : 0
         guard validSampleRate else { return }
 
         mappings.reserveCapacity(layout.count)

@@ -20,6 +20,43 @@ public enum ThemeID: String, CaseIterable, Codable, Sendable {
     case mobius
     /// 解析：無限雕塑＋鏡頭運鏡、區段標註與字幕（萊茵生命宣傳片風格）。
     case analysis
+    /// 黑洞：事件視界、光子環與吸積盤（SceneKit 3D）。
+    case blackHole = "blackhole"
+    /// 粒子球：數萬顆粒子組成、隨頻段起伏的球（SceneKit 3D）。
+    case particleSphere = "particles"
+    /// 音訊地形：頻譜歷史堆成的山脈地形（SceneKit 3D）。
+    case terrain
+
+    /// 是否由 SceneKit/Metal 繪製（其餘主題是 Core Graphics）。
+    public var isScene: Bool {
+        switch self {
+        case .blackHole, .particleSphere, .terrain: true
+        default: false
+        }
+    }
+}
+
+/// SceneKit 主題的呈現方式；可跨執行緒傳遞。
+public enum ScenePresentation: String, CaseIterable, Codable, Sendable {
+    /// 精簡：填滿浮動條、鏡頭固定、沒有台座。
+    case compact
+    /// 雕塑：台座與柔和陰影、鏡頭只隨聲音緩慢環繞。
+    case sculpture
+}
+
+/// 音訊地形的兩種外觀；可跨執行緒傳遞。
+public enum TerrainSurface: String, CaseIterable, Codable, Sendable {
+    /// 發光線框地景。
+    case wireframe
+    /// 平滑的半透明曲面。
+    case surface
+}
+
+/// SceneKit 主題的畫質；可跨執行緒傳遞。
+public enum RenderQuality: String, CaseIterable, Codable, Sendable {
+    case low
+    case medium
+    case high
 }
 
 /// 3D 雕塑（無限、解析）的色彩風格；可跨執行緒傳遞。
@@ -246,6 +283,12 @@ public struct VisualizerConfig: Codable, Equatable, Sendable {
         public var opacity: Double
         /// 3D 雕塑主題（無限、解析）的色彩風格。
         public var sculptureStyle: SculptureStyle
+        /// SceneKit 主題的呈現方式，預設精簡。
+        public var presentation: ScenePresentation
+        /// SceneKit 主題的畫質，預設中等。
+        public var quality: RenderQuality
+        /// 音訊地形的外觀，預設線框。
+        public var terrainSurface: TerrainSurface
 
         /// 建立設定；參數單位與範圍同各屬性，預設值來自原型；不自動夾值。
         public init(
@@ -256,7 +299,10 @@ public struct VisualizerConfig: Codable, Equatable, Sendable {
             barGap: Double = 0.28,
             windowMode: WindowMode = .card,
             opacity: Double = 1.0,
-            sculptureStyle: SculptureStyle = .porcelain
+            sculptureStyle: SculptureStyle = .porcelain,
+            presentation: ScenePresentation = .compact,
+            quality: RenderQuality = .medium,
+            terrainSurface: TerrainSurface = .wireframe
         ) {
             self.theme = theme
             self.palette = palette
@@ -266,6 +312,9 @@ public struct VisualizerConfig: Codable, Equatable, Sendable {
             self.windowMode = windowMode
             self.opacity = opacity
             self.sculptureStyle = sculptureStyle
+            self.presentation = presentation
+            self.quality = quality
+            self.terrainSurface = terrainSurface
         }
 
         private enum CodingKeys: String, CodingKey {
@@ -277,6 +326,9 @@ public struct VisualizerConfig: Codable, Equatable, Sendable {
             case windowMode
             case opacity
             case sculptureStyle
+            case presentation
+            case quality
+            case terrainSurface
         }
 
         /// 解碼缺少、null 或型別不符的欄位時補預設值；未知 key 忽略，有效數值保留原值。
@@ -295,6 +347,12 @@ public struct VisualizerConfig: Codable, Equatable, Sendable {
             opacity = (try? container.decodeIfPresent(Double.self, forKey: .opacity)) ?? defaults.opacity
             let styleValue = (try? container.decodeIfPresent(String.self, forKey: .sculptureStyle))
             sculptureStyle = styleValue.flatMap(SculptureStyle.init(rawValue:)) ?? defaults.sculptureStyle
+            let presentationValue = (try? container.decodeIfPresent(String.self, forKey: .presentation))
+            presentation = presentationValue.flatMap(ScenePresentation.init(rawValue:)) ?? defaults.presentation
+            let qualityValue = (try? container.decodeIfPresent(String.self, forKey: .quality))
+            quality = qualityValue.flatMap(RenderQuality.init(rawValue:)) ?? defaults.quality
+            let surfaceValue = (try? container.decodeIfPresent(String.self, forKey: .terrainSurface))
+            terrainSurface = surfaceValue.flatMap(TerrainSurface.init(rawValue:)) ?? defaults.terrainSurface
         }
     }
 

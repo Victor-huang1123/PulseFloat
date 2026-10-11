@@ -7,12 +7,15 @@ public struct SpectrumFrame: Sendable, Equatable {
     public var peaks: [Float]
     /// 平滑後的低頻能量（0...1），供脈動效果使用。
     public var bass: Float
+    /// 同一幀的音訊特徵（3D 主題使用）；沒有即時音訊的來源為 `.silent`。
+    public var features: AudioFeatures
 
     /// 原樣建立頻譜，不檢查或修正輸入；有效資料應為等長陣列且數值在 0...1，可於任意執行緒呼叫。
-    public init(values: [Float], peaks: [Float], bass: Float) {
+    public init(values: [Float], peaks: [Float], bass: Float, features: AudioFeatures = .silent) {
         self.values = values
         self.peaks = peaks
         self.bass = bass
+        self.features = features
     }
 
     /// 頻帶數量（可為 0），以 values 的長度為準；有效資料的 peaks 應具有相同長度。

@@ -261,6 +261,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         case .constellation: "星圖 Constellation"
         case .mobius: "無限 Möbius（3D）"
         case .analysis: "解析 Analysis OS（3D）"
+        case .blackHole: "黑洞 Black Hole（3D）"
+        case .particleSphere: "粒子球 Particle Sphere（3D）"
+        case .terrain: "音訊地形 Audio Terrain（3D）"
         }
     }
 
