@@ -1,0 +1,49 @@
+[
+ {
+  "id": "analysis",
+  "name_zh": "解析",
+  "name_en": "ANALYSIS OS",
+  "wall": "lab",
+  "tagline_zh": "照萊茵生命宣傳片的語言：鏡頭隨重低音在全景、側角、鰭片特寫之間切換，引線標出低／中／高頻區段，底部是隨音樂變化的中英字幕。",
+  "design_notes": "沿用 3D 無限雕塑。播放時每逢強拍（至少間隔約 3 秒）切換鏡頭並平滑過場；全景時三條引線從左圈、交叉點、右圈拉出 BASS／MID／TREBLE SECTION，附頻率範圍與即時 dB；左上 PULSEFLOAT / SYNTHESIZE AUDIO / ANALYSIS OS，右上拍點表與 FIN 讀數，右下 POWERED BY PULSEFLOAT。沒有聲音時鏡頭緩緩回到正面全景後完全停止，字幕顯示「等待訊號。」。浮動視窗拉大（高度 ≥ 260）時字更大、更接近影片的版面。",
+  "extra": "<div class=\"mstyles\" role=\"group\" aria-label=\"色彩風格\"><button type=\"button\" class=\"mswatch\" data-mstyle=\"porcelain\" data-wall=\"lab\" aria-pressed=\"true\"><i style=\"background:linear-gradient(135deg,#f6f3ec,#d9d4c9)\"></i>瓷白</button><button type=\"button\" class=\"mswatch\" data-mstyle=\"graphite\" data-wall=\"space\" aria-pressed=\"false\"><i style=\"background:linear-gradient(135deg,#55565c,#1e1e22)\"></i>石墨</button><button type=\"button\" class=\"mswatch\" data-mstyle=\"aurora\" data-wall=\"space\" aria-pressed=\"false\"><i style=\"background:linear-gradient(135deg,#21e6c1,#3a9bff,#a35cff)\"></i>極光</button><button type=\"button\" class=\"mswatch\" data-mstyle=\"sakura\" data-wall=\"light\" aria-pressed=\"false\"><i style=\"background:linear-gradient(135deg,#ffe3ec,#ffb3c8,#f7c6e0)\"></i>櫻花</button><button type=\"button\" class=\"mswatch\" data-mstyle=\"amber\" data-wall=\"lab\" aria-pressed=\"false\"><i style=\"background:linear-gradient(135deg,#ffd98a,#f2a541,#c8742b)\"></i>琥珀</button><button type=\"button\" class=\"mswatch\" data-mstyle=\"jade\" data-wall=\"lab\" aria-pressed=\"false\"><i style=\"background:linear-gradient(135deg,#d8f3dc,#74c69d,#2d6a4f)\"></i>翡翠</button><button type=\"button\" class=\"mswatch\" data-mstyle=\"neon\" data-wall=\"space\" aria-pressed=\"false\"><i style=\"background:linear-gradient(135deg,#16161e 30%,#00f5d4,#f15bb5,#9b5de5)\"></i>霓虹</button><button type=\"button\" class=\"mswatch\" data-mstyle=\"palette\" data-wall=\"space\" aria-pressed=\"false\"><i style=\"background:conic-gradient(from 90deg,#21e6c1,#ff6b35,#ff8fab,#95d5b2,#21e6c1)\"></i>跟隨配色</button></div><button type=\"button\" data-bigwin=\"1\">放大浮動視窗</button>"
+ },
+ {
+  "id": "mobius",
+  "name_zh": "無限",
+  "name_en": "MÖBIUS 3D",
+  "wall": "lab",
+  "tagline_zh": "萊茵生命風格的 3D 實驗室雕塑：上百片鰭片組成的 ∞ 緞帶，左右兩圈對稱，片片隨頻段伸展，重低音沿著緞帶送出一道光。",
+  "design_notes": "用 WebGL 即時算出 3D 緞帶：約 300 片鰭片沿著對稱的 ∞ 路徑半圈扭轉，有主光、補光與柔和的地面陰影，可以放在任何桌布上。左圈低頻、右圈高頻；重低音觸發一道從交叉點出發的脈衝。有聲音時才會左右對稱地輕輕擺動，安靜時完全靜止（連畫面都不重算）。只取用緞帶造型，不使用萊茵生命的 Logo。",
+  "extra": "<div class=\"mstyles\" role=\"group\" aria-label=\"色彩風格\"><button type=\"button\" class=\"mswatch\" data-mstyle=\"porcelain\" data-wall=\"lab\" aria-pressed=\"true\"><i style=\"background:linear-gradient(135deg,#f6f3ec,#d9d4c9)\"></i>瓷白</button><button type=\"button\" class=\"mswatch\" data-mstyle=\"graphite\" data-wall=\"space\" aria-pressed=\"false\"><i style=\"background:linear-gradient(135deg,#55565c,#1e1e22)\"></i>石墨</button><button type=\"button\" class=\"mswatch\" data-mstyle=\"aurora\" data-wall=\"space\" aria-pressed=\"false\"><i style=\"background:linear-gradient(135deg,#21e6c1,#3a9bff,#a35cff)\"></i>極光</button><button type=\"button\" class=\"mswatch\" data-mstyle=\"sakura\" data-wall=\"light\" aria-pressed=\"false\"><i style=\"background:linear-gradient(135deg,#ffe3ec,#ffb3c8,#f7c6e0)\"></i>櫻花</button><button type=\"button\" class=\"mswatch\" data-mstyle=\"amber\" data-wall=\"lab\" aria-pressed=\"false\"><i style=\"background:linear-gradient(135deg,#ffd98a,#f2a541,#c8742b)\"></i>琥珀</button><button type=\"button\" class=\"mswatch\" data-mstyle=\"jade\" data-wall=\"lab\" aria-pressed=\"false\"><i style=\"background:linear-gradient(135deg,#d8f3dc,#74c69d,#2d6a4f)\"></i>翡翠</button><button type=\"button\" class=\"mswatch\" data-mstyle=\"neon\" data-wall=\"space\" aria-pressed=\"false\"><i style=\"background:linear-gradient(135deg,#16161e 30%,#00f5d4,#f15bb5,#9b5de5)\"></i>霓虹</button><button type=\"button\" class=\"mswatch\" data-mstyle=\"palette\" data-wall=\"space\" aria-pressed=\"false\"><i style=\"background:conic-gradient(from 90deg,#21e6c1,#ff6b35,#ff8fab,#95d5b2,#21e6c1)\"></i>跟隨配色</button></div>"
+ },
+ {
+  "id": "radial",
+  "name_zh": "圓環放射＋封面",
+  "name_en": "RADIAL · NOW PLAYING",
+  "wall": "space",
+  "tagline_zh": "圓環中間放正在播放的專輯封面或 App 圖示，封面跟著低音一起脈動。",
+  "design_notes": "這頁可以載入本機音檔試試：檔案內嵌的封面會顯示在圓環中央（沒有封面就自動產生一張）。App 版做法：不需額外權限就能用 Core Audio 知道是哪個 App 在出聲並顯示它的圖示；Apple Music／Spotify 的歌名與封面透過 AppleScript 讀取（第一次會詢問「允許控制」）；瀏覽器的 YouTube 則從分頁網址取得影片縮圖。不使用已被 Apple 封鎖的私有 MediaRemote。"
+ },
+ {
+  "id": "orbit",
+  "name_zh": "軌道",
+  "name_en": "ORBIT",
+  "tagline_zh": "頻譜化成從行星邊緣升起的光柱，大氣層隨低音呼吸，衛星只在有音樂時繞行。",
+  "design_notes": "視窗下方是一道發光的行星地平線（參考圖右側的地球邊緣），64 個頻段沿著弧線垂直升起，低頻在左；低音讓大氣光暈變厚變亮，行星上有淡淡的經緯網格。沒有聲音時只剩靜止的地平線、刻度與網格。"
+ },
+ {
+  "id": "hud",
+  "name_zh": "儀表",
+  "name_en": "HUD",
+  "tagline_zh": "像太空船上的精密儀表：音樂來了，電路一節一節亮起；沒有聲音時只剩靜止的淡淡線框。",
+  "design_notes": "四角括號框住視窗，延伸出 45° 轉折的電路走線，依頻段能量逐段點亮；頻譜是一條清楚的折線加漸層填色，下方有 60 · 250 · 1k · 4k · 16k 刻度，右上角有低音環與 dB 讀數，左上是字距拉開的 P U L S E F L O A T 標題。"
+ },
+ {
+  "id": "constellation",
+  "name_zh": "星圖",
+  "name_en": "CONSTELLATION",
+  "tagline_zh": "每個頻段都是一顆星，音樂一響就連成星座、隨節拍重組；安靜時只剩一張靜止的淡淡星圖。",
+  "design_notes": "星星沿著一條由左下升到右上的虛線曲線分布，能量決定大小與亮度；局部峰值的星會互相連線成星座，重低音時最亮的星擴散出一圈光環，並標上 α／β／γ 與頻率；背景飄著極淡的公式（Σ|X[k]|²、20·log₁₀）。"
+ }
+]

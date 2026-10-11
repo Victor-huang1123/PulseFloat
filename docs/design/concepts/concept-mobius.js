@@ -21,6 +21,29 @@
   const TAU = Math.PI * 2;
   const CREAM = [242, 238, 228];
   const LIME = [226, 240, 150];
+  const hex = (h) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+  // Complete colour styles: sculpture colour/material + pulse colour + HUD ink/tag/halo + suggested wallpaper.
+  const STYLES = {
+    porcelain: { name: "瓷白", base: CREAM, pulse: LIME, rough: 0.58, metal: 0.04, wall: "lab",
+      ink: "rgba(28,26,24,0.88)", soft: "rgba(28,26,24,0.5)", accent: "#ff8a1f", tagBg: "rgba(20,18,16,0.92)", tagFg: "#f4f1ea", halo: "rgba(250,248,244,0.55)" },
+    graphite: { name: "石墨", base: [44, 44, 48], pulse: LIME, rough: 0.38, metal: 0.35, wall: "space",
+      ink: "rgba(236,234,228,0.92)", soft: "rgba(236,234,228,0.55)", accent: "#e2f096", tagBg: "rgba(236,234,228,0.9)", tagFg: "#1a1a1c", halo: "rgba(10,10,12,0.5)" },
+    aurora: { name: "極光", grad: ["#21e6c1", "#3a9bff", "#a35cff"], pulse: [255, 255, 255], rough: 0.35, metal: 0.2, wall: "space",
+      ink: "rgba(235,245,255,0.92)", soft: "rgba(200,225,255,0.6)", accent: "#21e6c1", tagBg: "rgba(33,230,193,0.9)", tagFg: "#04121a", halo: "rgba(4,10,24,0.5)" },
+    sakura: { name: "櫻花", grad: ["#ffe3ec", "#ffb3c8", "#f7c6e0"], pulse: [255, 110, 160], rough: 0.55, metal: 0.02, wall: "light",
+      ink: "rgba(110,32,64,0.9)", soft: "rgba(110,32,64,0.55)", accent: "#ff5d8f", tagBg: "rgba(110,32,64,0.92)", tagFg: "#ffe9f0", halo: "rgba(255,245,248,0.6)" },
+    amber: { name: "琥珀", grad: ["#ffd98a", "#f2a541", "#c8742b"], pulse: [255, 244, 214], rough: 0.32, metal: 0.55, wall: "lab",
+      ink: "rgba(64,34,10,0.9)", soft: "rgba(64,34,10,0.55)", accent: "#ff8a1f", tagBg: "rgba(64,34,10,0.92)", tagFg: "#fff3dc", halo: "rgba(255,248,236,0.55)" },
+    jade: { name: "翡翠", grad: ["#d8f3dc", "#74c69d", "#2d6a4f"], pulse: [240, 255, 200], rough: 0.3, metal: 0.1, wall: "lab",
+      ink: "rgba(16,52,36,0.9)", soft: "rgba(16,52,36,0.55)", accent: "#52b788", tagBg: "rgba(16,52,36,0.92)", tagFg: "#e9f7ee", halo: "rgba(240,250,244,0.55)" },
+    neon: { name: "霓虹", base: [22, 22, 30], glow: ["#00f5d4", "#f15bb5", "#9b5de5"], glowMix: 0.55, pulse: [255, 255, 255], rough: 0.4, metal: 0.3, wall: "space",
+      ink: "rgba(240,240,255,0.92)", soft: "rgba(200,200,255,0.6)", accent: "#f15bb5", tagBg: "rgba(241,91,181,0.92)", tagFg: "#120818", halo: "rgba(6,4,14,0.55)" },
+    palette: { name: "跟隨配色", usePalette: true, pulse: LIME, rough: 0.45, metal: 0.1, wall: "space",
+      ink: "rgba(235,245,255,0.92)", soft: "rgba(200,225,255,0.6)", accent: "#ff8a1f", tagBg: "rgba(235,245,255,0.9)", tagFg: "#0b0d14", halo: "rgba(4,10,24,0.5)" },
+  };
+  const styleOf = () => STYLES[window.PF.mobiusStyle] || STYLES.porcelain;
+  const grad3 = (stops, u) => { const c = stops.map(hex), x = Math.min(1, Math.max(0, u)) * 2, i = Math.min(1, Math.floor(x)), f = x - i;
+    return [0, 1, 2].map(k => c[i][k] + (c[i + 1][k] - c[i][k]) * f); };
 
   function lemniscate(t, out) {
     const s = Math.sin(t), c = Math.cos(t), d = 1 + s * s;
@@ -81,6 +104,7 @@
     st.prevBass = bass;
     for (const p of st.pulses) { p.u += dt * 0.55; p.a *= Math.exp(-dt * 0.9); }
     st.pulses = st.pulses.filter(p => p.u < 1.05 && p.a > 0.02);
+    return dt;
   }
 
   function pulseAt(st, u) {
@@ -145,12 +169,8 @@
     const THREE = window.THREE;
     if (rig.mesh && rig.M === M && rig.style === styleName) return;
     if (rig.mesh) { rig.group.remove(rig.mesh); rig.mesh.geometry.dispose(); rig.mesh.material.dispose(); }
-    const graphite = styleName === "graphite";
-    const material = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      roughness: graphite ? 0.38 : 0.58,
-      metalness: graphite ? 0.35 : 0.04,
-    });
+    const style = STYLES[styleName] || STYLES.porcelain;
+    const material = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: style.rough, metalness: style.metal });
     const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), material, M);
     mesh.castShadow = true;
     mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -162,60 +182,81 @@
 
   const tmp = {};
   function baseColor(styleName, u) {
-    if (styleName === "graphite") return [44, 44, 48];
-    if (styleName === "palette" && window.PF.palAt) {
+    const style = STYLES[styleName] || STYLES.porcelain;
+    if (style.usePalette && window.PF.palAt) {
       const c = window.PF.palAt(u);
       return [c[0] * 0.75 + CREAM[0] * 0.25, c[1] * 0.75 + CREAM[1] * 0.25, c[2] * 0.75 + CREAM[2] * 0.25];
     }
-    return CREAM;
+    if (style.grad) return grad3(style.grad, u);
+    if (style.glow) { const g = grad3(style.glow, u), m = style.glowMix; return [0, 1, 2].map(k => style.base[k] * (1 - m) + g[k] * m); }
+    return style.base;
   }
 
-  function draw3D(ctx, w, h, o) {
+  // Shared 3D render: draws the sculpture into ctx and returns helpers for overlays.
+  // cameraHook(rig, dt) may move rig.camera and returns true while it still needs re-rendering.
+  function render(ctx, w, h, o, rigKey, cameraHook) {
     const THREE = window.THREE;
     const PF = window.PF, S = PF.S, st = o.state;
     const small = !!o.small;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const wPx = Math.max(2, Math.round(w * dpr)), hPx = Math.max(2, Math.round(h * dpr));
-    const rig = getRig(small ? "thumb" : "main", wPx, hPx);
+    const rig = getRig(rigKey, wPx, hPx);
     const styleName = PF.mobiusStyle || "porcelain";
     const M = small ? 140 : 300;
     ensureMesh(rig, M, styleName);
-    stepAnimation(st, S, o.t);
-
-    // Signature of everything that changes the image; skip rendering when nothing changed (silence = still).
-    const sig = `${wPx}x${hPx}|${styleName}|${M}|${st.angle.toFixed(4)}|${st.energy.toFixed(3)}|${st.pulses.length}|${PF.paletteKey || ""}`;
-    const moving = st.energy > 0 || st.pulses.length > 0;
+    const dt = stepAnimation(st, S, o.t);
+    rig.group.rotation.y = 0.28 * Math.sin(st.angle);
+    const camBusy = cameraHook ? cameraHook(rig, dt) : false;
+    const cp = rig.camera.position;
+    const sig = `${wPx}x${hPx}|${styleName}|${M}|${st.angle.toFixed(4)}|${st.energy.toFixed(3)}|${st.pulses.length}|${PF.paletteKey || ""}|${cp.x.toFixed(3)},${cp.y.toFixed(3)},${cp.z.toFixed(3)}`;
+    const moving = st.energy > 0 || st.pulses.length > 0 || camBusy;
     if (moving || rig.dirty || st.sig !== sig || rig.lastOwner !== st) {
       const f = rig.frames, m = new THREE.Matrix4(), col = new THREE.Color();
       const finDepth = f.spacing * 0.38;
-      const vW = new THREE.Vector3(), vN = new THREE.Vector3(), vT = new THREE.Vector3();
+      const vW = new THREE.Vector3(), vN = new THREE.Vector3(), vT = new THREE.Vector3(), vS = new THREE.Vector3();
       for (let i = 0; i < M; i++) {
         const u = f.u[i], e = bandEnergy(S, u), pu = pulseAt(st, u);
         const half = 0.085 * (1 + 1.5 * e + 0.55 * pu);
         const finH = 0.05 * (1 + 0.7 * e + 0.4 * pu);
         vW.fromArray(f.W[i]); vN.fromArray(f.N[i]); vT.fromArray(f.T[i]);
         m.makeBasis(vW, vN, vT);
-        m.scale(new THREE.Vector3(half * 2, finH, finDepth));
+        m.scale(vS.set(half * 2, finH, finDepth));
         m.setPosition(f.P[i][0], f.P[i][1], f.P[i][2]);
         rig.mesh.setMatrixAt(i, m);
-        const base = baseColor(styleName, u);
-        const g = Math.min(1, pu * 0.9 + e * (styleName === "graphite" ? 0.25 : 0.1));
+        const base = baseColor(styleName, u), pc = (STYLES[styleName] || STYLES.porcelain).pulse;
+        const g = Math.min(1, pu * 0.9 + e * 0.18);
         col.setRGB(
-          (base[0] * (1 - g) + LIME[0] * g) / 255,
-          (base[1] * (1 - g) + LIME[1] * g) / 255,
-          (base[2] * (1 - g) + LIME[2] * g) / 255
+          (base[0] * (1 - g) + pc[0] * g) / 255,
+          (base[1] * (1 - g) + pc[1] * g) / 255,
+          (base[2] * (1 - g) + pc[2] * g) / 255
         ).convertSRGBToLinear();
         rig.mesh.setColorAt(i, col);
       }
       rig.mesh.instanceMatrix.needsUpdate = true;
       if (rig.mesh.instanceColor) rig.mesh.instanceColor.needsUpdate = true;
-      rig.group.rotation.y = 0.28 * Math.sin(st.angle);
       rig.renderer.render(rig.scene, rig.camera);
       rig.dirty = false; rig.lastOwner = st; st.sig = sig;
     }
     ctx.clearRect(0, 0, w, h);
     ctx.drawImage(rig.renderer.domElement, 0, 0, w, h);
-    if (!small && h >= 120) drawLabels(ctx, w, h, st.energy);
+    // overlay helpers
+    let loudest = 0, best = -1; const N = S.N | 0;
+    for (let b = 0; b < N; b++) { const v = +S.cur[b] || 0; if (v > best) { best = v; loudest = b; } }
+    const loudestFin = N > 0 && best > 0 ? Math.round(((loudest + 0.5) / N) * M) % M : 0;
+    rig.group.updateMatrixWorld();
+    const project = (u) => {
+      const f = rig.frames, i = Math.min(f.M - 1, Math.max(0, Math.round(u * f.M)));
+      const v = new THREE.Vector3().fromArray(f.P[i]).applyMatrix4(rig.group.matrixWorld).project(rig.camera);
+      if (v.z > 1 || v.x < -1.05 || v.x > 1.05 || v.y < -1.05 || v.y > 1.05) return null;
+      return { x: (v.x + 1) / 2 * w, y: (1 - v.y) / 2 * h };
+    };
+    return { loudestFin, M, project };
+  }
+
+  function draw3D(ctx, w, h, o) {
+    const st = o.state;
+    render(ctx, w, h, o, o.small ? "thumb" : "main", null);
+    if (!o.small && h >= 120) drawLabels(ctx, w, h, st.energy);
   }
 
   function drawLabels(ctx, w, h, energy) {
@@ -223,8 +264,9 @@
     ctx.font = '500 9px ui-monospace, "SF Mono", Menlo, monospace';
     const label = (text, x, y, align) => {
       ctx.textAlign = align;
-      ctx.lineWidth = 2.5; ctx.strokeStyle = "rgba(20,18,16,0.35)"; ctx.strokeText(text, x, y);
-      ctx.fillStyle = "rgba(242,238,228,0.8)"; ctx.fillText(text, x, y);
+      const sty = styleOf();
+      ctx.lineWidth = 2.5; ctx.strokeStyle = sty.halo; ctx.strokeText(text, x, y);
+      ctx.fillStyle = sty.ink; ctx.fillText(text, x, y);
     };
     label("SPECIMEN ∞ — ANALYSIS", 14, 18, "left");
     const level = energy > 0 ? (20 * Math.log10(Math.max(1e-4, energy))).toFixed(1) + " dB" : "—∞ dB";
@@ -274,5 +316,6 @@
     draw2D(ctx, w, h, o);
   }
 
+  window.PF.mobius3D = { render, draw2D, STYLES };
   window.PF_EXTRA.push({ id: "mobius", name: "無限", en: "MÖBIUS 3D", draw });
 })();

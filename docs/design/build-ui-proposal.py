@@ -5,7 +5,7 @@ ROOT = '/Users/huang/Documents/PulseFloat/docs/design/prototype.html'
 CONCEPTS = '/private/tmp/claude-501/-Users-huang/0edfc05b-802c-4868-838d-db56a1e42223/scratchpad/ui-concepts'
 OUT = '/private/tmp/claude-501/-Users-huang/0edfc05b-802c-4868-838d-db56a1e42223/scratchpad/ui-proposal/pulsefloat-ui.html'
 notes = json.load(open(os.path.join(os.path.dirname(OUT), 'notes.json'))) if os.path.exists(os.path.join(os.path.dirname(OUT), 'notes.json')) else []
-order = ['mobius', 'radial', 'orbit', 'hud', 'constellation']
+order = ['analysis', 'mobius', 'radial', 'orbit', 'hud', 'constellation']
 
 s = open(ROOT, encoding='utf-8').read()
 def rep(old, new, count=1):
@@ -16,7 +16,7 @@ def rep(old, new, count=1):
 
 rep('<title>Pulsefloat Prototype</title>', '<title>PulseFloat UI 提案</title>')
 rep('<span>設計原型 v0.1 · 視覺與手感基準，Swift 版照這份參數實作</span>',
-    '<span>UI 提案 v0.4 · 萊茵生命 3D 雕塑、正在播放封面、太空 HUD（Pinterest）· 預設透明視窗</span>')
+    '<span>UI 提案 v0.6 · 解析 ANALYSIS OS（萊茵生命宣傳片風格）、3D 無限雕塑、正在播放封面、太空 HUD · 預設透明視窗</span>')
 # transport: silence preview + wallpaper
 rep('<button class="primary" id="playDemo" type="button">▶ 播放示範曲</button>',
     '<button class="primary" id="playDemo" type="button">▶ 播放示範曲</button>\n'
@@ -39,7 +39,8 @@ rep('.gallery{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12p
     '.concept h3 em{font-style:normal;font-family:var(--f-mono);font-size:11px;color:var(--muted)}\n'
     '.concept .pitch{margin:0;color:var(--fg)}\n'
     '.concept .detail{margin:0;color:var(--muted);font-size:12.5px}\n'
-    '.concept button{align-self:flex-start}')
+    '.concept button{align-self:flex-start}\n'
+    '.mstyles{display:flex;flex-wrap:wrap;gap:6px}.mswatch{gap:6px;padding:4px 9px 4px 4px;font-size:12px}.mswatch i{width:16px;height:16px;border-radius:4px;display:inline-block;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}.mswatch[aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}')
 # concept cards before the existing notes paragraph
 cards = []
 for n in sorted(notes, key=lambda x: order.index(x['id']) if x['id'] in order else 9):
@@ -50,15 +51,15 @@ rep('<p class="notes">',
     '<div class="section-h"><h2>新方向</h2><p>3D 無限雕塑（萊茵生命風格）、圓環＋封面、三個 Pinterest 太空 HUD 方向；沒有聲音時都保持靜止</p></div>\n'
     '      <div class="concepts" id="concepts">' + ''.join(cards) + '</div>\n      <p class="notes">', 1)
 rep('<div class="section-h"><h2>主題</h2><p>四種主題都吃同一組頻帶資料，只差在繪圖</p></div>',
-    '<div class="section-h"><h2>全部主題</h2><p>原本 4 種 + 新提案 4 種（標 NEW）；配色新增 6 組，都吃同一組頻帶資料</p></div>')
+    '<div class="section-h"><h2>全部主題</h2><p>原本 4 種 + 新提案 5 種（標 NEW）；配色新增 6 組，都吃同一組頻帶資料</p></div>')
 # defaults: transparent + first concept; new storage key
 rep('theme: "bars", palette: "aurora", mirror: false, reflection: true, barGap: 0.28, windowMode: "card"',
-    'theme: "mobius", palette: "aurora", mirror: false, reflection: true, barGap: 0.28, windowMode: "bare"')
+    'theme: "analysis", palette: "aurora", mirror: false, reflection: true, barGap: 0.28, windowMode: "bare"')
 s = s.replace('pulsefloat.params.v1', 'pulsefloat.ui-proposal.v2')
 # expose helpers + merge concepts
 rep('const RENDER = { bars:drawBars, radial:drawRadial, neon:drawNeon, led:drawLed };',
     'const RENDER = { bars:drawBars, radial:drawRadial, neon:drawNeon, led:drawLed };\n'
-    'window.PF = { S, palAt, rgba, rr };\n'
+    'window.PF = Object.assign(window.PF || {}, { S, palAt, rgba, rr });\n'
     'for (const c of (window.PF_EXTRA || [])) { if (typeof c.draw === "function" && !RENDER[c.id]) { RENDER[c.id] = c.draw; THEMES.push({ id: c.id, name: c.name, en: c.en, isNew: true }); } }\n'
     'if (!RENDER[P.look.theme]) P.look.theme = "bars";')
 s = s.replace('{small:false,fade:c.fade}', '{small:false,fade:c.fade,state:(c.st||(c.st={})),t:performance.now()/1000}')
@@ -112,7 +113,8 @@ rep('let forceSilence = false;',
     '  try { window.jsmediatags.read(file, { onSuccess(tag){ const pic=tag && tag.tags && tag.tags.picture; if (!pic) return fallback();\n'
     '      const blob=new Blob([new Uint8Array(pic.data)], {type: pic.format || "image/jpeg"}); const img=new Image(); img.onload=()=>{ window.PF.art=img; }; img.onerror=fallback; img.src=URL.createObjectURL(blob); }, onError: fallback }); }\n'
     '  catch (e) { fallback(); } }\n'
-    'document.querySelectorAll("[data-mstyle]").forEach(b => b.addEventListener("click", () => { window.PF.mobiusStyle = b.dataset.mstyle; document.querySelectorAll("[data-mstyle]").forEach(x => x.setAttribute("aria-pressed", String(x === b))); }));\n'
+    'document.querySelectorAll("[data-bigwin]").forEach(b => b.addEventListener("click", () => { const big = fl.style.width !== "86%"; fl.style.width = big ? "86%" : "56%"; fl.style.left = big ? "7%" : "8%"; fl.style.top = big ? "18%" : "40%"; b.textContent = big ? "還原視窗大小" : "放大浮動視窗"; if (RENDER.analysis) setTheme("analysis"); setWall("lab"); }));\n'
+    'document.querySelectorAll("[data-mstyle]").forEach(b => b.addEventListener("click", () => { window.PF.mobiusStyle = b.dataset.mstyle; document.querySelectorAll("[data-mstyle]").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.mstyle === b.dataset.mstyle))); if (b.dataset.wall) setWall(b.dataset.wall); if (!["analysis","mobius"].includes(P.look.theme)) setTheme("analysis"); }));\n'
     'let forceSilence = false;')
 rep('mode="demo"; playing=true; setChip("示範曲 · 128 BPM"); setPlayBtn();', 'mode="demo"; playing=true; setChip("示範曲 · 128 BPM"); setPlayBtn(); window.PF.art = makeCover("DEMO", "128 BPM · SYNTH");')
 rep('mode="file"; playing=true; setChip(', 'mode="file"; playing=true; setArtFromFile(file); setChip(')
