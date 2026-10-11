@@ -51,10 +51,28 @@ final class FloatingPanelController {
         setTheme(themes[(index + 1) % themes.count])
     }
 
+    /// 設定改變時通知 App 層（用來存檔）；只在主執行緒呼叫。
+    var onConfigChange: ((VisualizerConfig) -> Void)?
+
     func setTheme(_ theme: ThemeID) {
         config.look.theme = theme
         config = config.clamped()
         visualizerView.update(config: config)
+        onConfigChange?(config)
+    }
+
+    func setPalette(_ palette: PaletteID) {
+        guard config.look.palette != palette else { return }
+        config.look.palette = palette
+        visualizerView.update(config: config)
+        onConfigChange?(config)
+    }
+
+    /// 選單列圖示是否使用配色（關閉時是跟隨系統的單色 template 圖示）。
+    func setMenuBarColored(_ colored: Bool) {
+        guard config.menubar.colored != colored else { return }
+        config.menubar.colored = colored
+        onConfigChange?(config)
     }
 
     func setWindowMode(_ mode: WindowMode) {
@@ -65,6 +83,7 @@ final class FloatingPanelController {
         installContentView()
         visualizerView.update(config: config)
         chromeView.refreshHover()
+        onConfigChange?(config)
     }
 
     private func installContentView() {

@@ -11,6 +11,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private var lockItem: NSMenuItem?
     private var themeItems: [NSMenuItem] = []
     private var windowModeItems: [NSMenuItem] = []
+    private var paletteItems: [NSMenuItem] = []
+    private var coloredIconItem: NSMenuItem?
     private let audioStatus: () -> String
     private let audioStatusItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let isDockIconVisible: () -> Bool
@@ -68,6 +70,23 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         modeItem.submenu = modes
         menu.addItem(modeItem)
 
+        let palettes = NSMenu()
+        palettes.autoenablesItems = false
+        for palette in PaletteID.allCases {
+            let item = makeItem(title: Self.title(for: palette), action: #selector(selectPalette(_:)))
+            item.representedObject = palette.rawValue
+            item.image = Self.swatch(for: palette)
+            palettes.addItem(item)
+            paletteItems.append(item)
+        }
+        palettes.addItem(.separator())
+        let colored = makeItem(title: "選單列圖示也用配色", action: #selector(toggleColoredIcon))
+        coloredIconItem = colored
+        palettes.addItem(colored)
+        let paletteItem = NSMenuItem(title: "配色", action: nil, keyEquivalent: "")
+        paletteItem.submenu = palettes
+        menu.addItem(paletteItem)
+
         let lock = makeItem(title: "鎖定並點擊穿透", action: #selector(toggleLock))
         lockItem = lock
         menu.addItem(lock)
@@ -104,6 +123,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         for item in themeItems {
             item.state = (item.representedObject as? String) == panelController.config.look.theme.rawValue ? .on : .off
         }
+        for item in paletteItems {
+            item.state = (item.representedObject as? String) == panelController.config.look.palette.rawValue ? .on : .off
+        }
+        coloredIconItem?.state = panelController.config.menubar.colored ? .on : .off
         for item in windowModeItems {
             item.state = (item.representedObject as? String) == panelController.config.look.windowMode.rawValue ? .on : .off
         }
@@ -139,6 +162,39 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         return item
     }
 
+    private static func title(for palette: PaletteID) -> String {
+        switch palette {
+        case .aurora: "極光 Aurora"
+        case .ember: "餘燼 Ember"
+        case .glacier: "冰川 Glacier"
+        case .mono: "單色 Mono"
+        case .lab: "實驗室 Lab"
+        case .sakura: "櫻花 Sakura"
+        case .sunset: "夕陽 Sunset"
+        case .matcha: "抹茶 Matcha"
+        case .neotokyo: "新東京 Neo Tokyo"
+        case .graphite: "石墨 Graphite"
+        }
+    }
+
+    /// 選單裡的三色漸層色票（28×12 pt 圓角矩形）。
+    private static func swatch(for palette: PaletteID) -> NSImage {
+        let colors = Palette(palette)
+        let image = NSImage(size: NSSize(width: 28, height: 12), flipped: false) { rect in
+            let path = NSBezierPath(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), xRadius: 3, yRadius: 3)
+            let stops = [0.0, 0.5, 1.0].map { colors.color(at: $0) }
+            let gradient = NSGradient(colors: stops.map {
+                NSColor(srgbRed: CGFloat($0.red) / 255, green: CGFloat($0.green) / 255, blue: CGFloat($0.blue) / 255, alpha: 1)
+            })
+            gradient?.draw(in: path, angle: 0)
+            NSColor.black.withAlphaComponent(0.15).setStroke()
+            path.lineWidth = 0.5
+            path.stroke()
+            return true
+        }
+        return image
+    }
+
     private static func title(for theme: ThemeID) -> String {
         switch theme {
         case .bars: "經典直條"
@@ -164,6 +220,16 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         guard let rawValue = item.representedObject as? String,
               let theme = ThemeID(rawValue: rawValue) else { return }
         panelController.setTheme(theme)
+    }
+
+    @objc private func selectPalette(_ item: NSMenuItem) {
+        guard let rawValue = item.representedObject as? String,
+              let palette = PaletteID(rawValue: rawValue) else { return }
+        panelController.setPalette(palette)
+    }
+
+    @objc private func toggleColoredIcon() {
+        panelController.setMenuBarColored(!panelController.config.menubar.colored)
     }
 
     @objc private func selectWindowMode(_ item: NSMenuItem) {

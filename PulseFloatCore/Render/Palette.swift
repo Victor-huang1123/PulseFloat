@@ -52,6 +52,30 @@ public struct Palette: Sendable {
             first = RGB(red: 255, green: 255, blue: 255)
             middle = RGB(red: 213, green: 218, blue: 229)
             last = RGB(red: 152, green: 161, blue: 180)
+        case .lab:
+            first = RGB(red: 242, green: 238, blue: 228)
+            middle = RGB(red: 201, green: 195, blue: 182)
+            last = RGB(red: 226, green: 240, blue: 150)
+        case .sakura:
+            first = RGB(red: 255, green: 224, blue: 233)
+            middle = RGB(red: 255, green: 143, blue: 171)
+            last = RGB(red: 199, green: 125, blue: 255)
+        case .sunset:
+            first = RGB(red: 255, green: 183, blue: 3)
+            middle = RGB(red: 251, green: 86, blue: 7)
+            last = RGB(red: 131, green: 56, blue: 236)
+        case .matcha:
+            first = RGB(red: 233, green: 245, blue: 219)
+            middle = RGB(red: 149, green: 213, blue: 178)
+            last = RGB(red: 45, green: 106, blue: 79)
+        case .neotokyo:
+            first = RGB(red: 0, green: 245, blue: 212)
+            middle = RGB(red: 241, green: 91, blue: 181)
+            last = RGB(red: 155, green: 93, blue: 229)
+        case .graphite:
+            first = RGB(red: 245, green: 245, blue: 245)
+            middle = RGB(red: 158, green: 158, blue: 158)
+            last = RGB(red: 58, green: 58, blue: 58)
         }
     }
 

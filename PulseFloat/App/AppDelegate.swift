@@ -23,10 +23,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         UserDefaults.standard.register(defaults: [Self.dockIconKey: true])
         NSApp.mainMenu = makeMainMenu()
         applyDockIconPreference()
-        // App 預設用透明視窗（VisualizerConfig.default 維持原型參數，供 JSON 相容與測試）。
-        var initialConfig = VisualizerConfig.default
-        initialConfig.look.windowMode = .bare
-        let floatingPanel = FloatingPanelController(config: initialConfig)
+        // 先讀使用者上次的設定；沒有的話用 App 預設（透明視窗）。VisualizerConfig.default 維持原型參數。
+        var appDefault = VisualizerConfig.default
+        appDefault.look.windowMode = .bare
+        let floatingPanel = FloatingPanelController(config: ConfigStore.load() ?? appDefault)
+        floatingPanel.onConfigChange = { ConfigStore.save($0) }
         let ring = SampleRingBuffer()
         let source = LiveSpectrumSource(config: floatingPanel.config, ring: ring)
         let tap = SystemAudioTap(ring: ring)

@@ -22,6 +22,18 @@ public enum PaletteID: String, CaseIterable, Codable, Sendable {
     case glacier
     /// 單色配色。
     case mono
+    /// 實驗室米白（萊茵生命風格）：米白 → 暖灰 → 萊姆黃。
+    case lab
+    /// 櫻花：淡粉 → 粉紅 → 紫。
+    case sakura
+    /// 夕陽：金黃 → 橘紅 → 紫。
+    case sunset
+    /// 抹茶：淡綠 → 薄荷 → 深綠。
+    case matcha
+    /// 新東京霓虹：青 → 洋紅 → 紫。
+    case neotokyo
+    /// 石墨：白 → 灰 → 深灰。
+    case graphite
 }
 
 /// 視窗背景模式；可跨執行緒傳遞。
