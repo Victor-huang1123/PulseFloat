@@ -1,5 +1,6 @@
 import PulseFloatCore
 import PulseFloatScene
+import QuartzCore
 import XCTest
 
 /// 三個 SceneKit 主題的共同契約：畫得出東西、靜音時逐像素靜止並回報 isAtRest、
@@ -42,6 +43,25 @@ final class SceneRendererTests: XCTestCase {
                 XCTAssertGreaterThan(image.visibleRatio, 0.02, "\(theme) \(presentation)")
                 XCTAssertGreaterThan(image.timing.gpuMs, 0)
             }
+        }
+    }
+
+    func testLiveLayerPathRendersWithMusicAndSkipsAtRest() throws {
+        for theme in Self.themes {
+            let renderer = try makeRenderer(theme)
+            let layer = CAMetalLayer()
+            layer.device = renderer.device
+            layer.pixelFormat = .bgra8Unorm
+            layer.drawableSize = CGSize(width: width, height: height)
+            let audio = DemoAudio(seed: 3)
+            play(renderer, audio, seconds: 1, program: .music)
+            XCTAssertTrue(renderer.render(frame: audio.next(dt: dt), dt: dt, into: layer), "\(theme) 有聲音時要畫")
+            play(renderer, audio, seconds: 4, program: .silence)
+            XCTAssertTrue(renderer.render(frame: audio.next(dt: dt), dt: dt, into: layer), "\(theme) 進入靜止後還要畫最後一次")
+            XCTAssertFalse(renderer.render(frame: audio.next(dt: dt), dt: dt, into: layer), "\(theme) 靜止時不應該重繪")
+            XCTAssertGreaterThan(renderer.timing.skippedFrames, 0)
+            renderer.invalidate()
+            XCTAssertTrue(renderer.render(frame: audio.next(dt: dt), dt: dt, into: layer), "\(theme) invalidate 後要重繪一次")
         }
     }
 

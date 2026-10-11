@@ -14,6 +14,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private var paletteItems: [NSMenuItem] = []
     private var coloredIconItem: NSMenuItem?
     private var styleItems: [NSMenuItem] = []
+    private var presentationItems: [NSMenuItem] = []
+    private var qualityItems: [NSMenuItem] = []
+    private var surfaceItems: [NSMenuItem] = []
+    private let sceneTimingItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+    private var thumbnailLook: VisualizerConfig.Look?
     private let opacitySlider = NSSlider(value: 1, minValue: 0.3, maxValue: 1, target: nil, action: nil)
     private let opacityLabel = NSTextField(labelWithString: "透明度")
     private let audioStatus: () -> String
@@ -38,6 +43,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
         statusItem.button?.setAccessibilityLabel("PulseFloat")
         updateImage(frame: .silent(bandCount: panelController.config.bands.count))
+        // 主題縮圖要跑一小段示範音樂與幾個 renderer，啟動後稍等再產生，避免拖慢啟動或第一次打開選單。
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            MainActor.assumeIsolated { self?.refreshThumbnails() }
+        }
 
         let menu = NSMenu()
         menu.delegate = self
@@ -102,6 +111,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let styleItem = NSMenuItem(title: "雕塑色彩（3D 主題）", action: nil, keyEquivalent: "")
         styleItem.submenu = styles
         menu.addItem(styleItem)
+        menu.addItem(makeSceneMenuItem())
 
         menu.addItem(makeOpacityItem())
 
@@ -147,6 +157,17 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         for item in styleItems {
             item.state = (item.representedObject as? String) == panelController.config.look.sculptureStyle.rawValue ? .on : .off
         }
+        let look = panelController.config.look
+        for item in presentationItems { item.state = (item.representedObject as? String) == look.presentation.rawValue ? .on : .off }
+        for item in qualityItems { item.state = (item.representedObject as? String) == look.quality.rawValue ? .on : .off }
+        for item in surfaceItems { item.state = (item.representedObject as? String) == look.terrainSurface.rawValue ? .on : .off }
+        if let timing = panelController.visualizerView.sceneTiming {
+            sceneTimingItem.title = String(format: "效能：CPU %.2f ms（更新 %.2f＋繪製指令 %.2f）・GPU %.2f ms", timing.cpuMs, timing.cpuUpdateMs, timing.cpuEncodeMs, timing.gpuMs)
+            sceneTimingItem.isHidden = false
+        } else {
+            sceneTimingItem.isHidden = true
+        }
+        refreshThumbnails()
         coloredIconItem?.state = panelController.config.menubar.colored ? .on : .off
         opacitySlider.doubleValue = panelController.config.look.opacity
         updateOpacityLabel()
@@ -216,6 +237,77 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             return true
         }
         return image
+    }
+
+    /// 「3D 主題」子選單：呈現方式、畫質、地形外觀與目前的 CPU／GPU 時間。
+    private func makeSceneMenuItem() -> NSMenuItem {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        let header = NSMenuItem(title: "呈現方式", action: nil, keyEquivalent: "")
+        header.isEnabled = false
+        menu.addItem(header)
+        for (presentation, title) in [(ScenePresentation.compact, "精簡（浮動條）"), (.sculpture, "雕塑（⌥ 拖曳旋轉・捲動縮放・雙擊重設）")] {
+            let item = makeItem(title: title, action: #selector(selectPresentation(_:)))
+            item.representedObject = presentation.rawValue
+            item.indentationLevel = 1
+            menu.addItem(item)
+            presentationItems.append(item)
+        }
+        menu.addItem(.separator())
+        let qualityHeader = NSMenuItem(title: "畫質", action: nil, keyEquivalent: "")
+        qualityHeader.isEnabled = false
+        menu.addItem(qualityHeader)
+        for (quality, title) in [(RenderQuality.low, "低"), (.medium, "中"), (.high, "高")] {
+            let item = makeItem(title: title, action: #selector(selectQuality(_:)))
+            item.representedObject = quality.rawValue
+            item.indentationLevel = 1
+            menu.addItem(item)
+            qualityItems.append(item)
+        }
+        menu.addItem(.separator())
+        let surfaceHeader = NSMenuItem(title: "音訊地形外觀", action: nil, keyEquivalent: "")
+        surfaceHeader.isEnabled = false
+        menu.addItem(surfaceHeader)
+        for (surface, title) in [(TerrainSurface.wireframe, "線框地景"), (.surface, "半透明曲面")] {
+            let item = makeItem(title: title, action: #selector(selectTerrainSurface(_:)))
+            item.representedObject = surface.rawValue
+            item.indentationLevel = 1
+            menu.addItem(item)
+            surfaceItems.append(item)
+        }
+        menu.addItem(.separator())
+        sceneTimingItem.isEnabled = false
+        menu.addItem(sceneTimingItem)
+        let item = NSMenuItem(title: "3D 主題設定", action: nil, keyEquivalent: "")
+        item.submenu = menu
+        return item
+    }
+
+    /// 主題縮圖跟著配色與雕塑色彩；設定沒變就沿用。
+    private func refreshThumbnails() {
+        let look = panelController.config.look
+        guard thumbnailLook?.palette != look.palette || thumbnailLook?.sculptureStyle != look.sculptureStyle
+                || thumbnailLook?.terrainSurface != look.terrainSurface else { return }
+        thumbnailLook = look
+        let images = ThemeThumbnails.make(look: look)
+        for item in themeItems {
+            if let raw = item.representedObject as? String, let theme = ThemeID(rawValue: raw) { item.image = images[theme] }
+        }
+    }
+
+    @objc private func selectPresentation(_ item: NSMenuItem) {
+        guard let raw = item.representedObject as? String, let value = ScenePresentation(rawValue: raw) else { return }
+        panelController.setPresentation(value)
+    }
+
+    @objc private func selectQuality(_ item: NSMenuItem) {
+        guard let raw = item.representedObject as? String, let value = RenderQuality(rawValue: raw) else { return }
+        panelController.setQuality(value)
+    }
+
+    @objc private func selectTerrainSurface(_ item: NSMenuItem) {
+        guard let raw = item.representedObject as? String, let value = TerrainSurface(rawValue: raw) else { return }
+        panelController.setTerrainSurface(value)
     }
 
     private static func title(for style: SculptureStyle) -> String {

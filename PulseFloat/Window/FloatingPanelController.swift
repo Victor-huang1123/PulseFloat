@@ -90,6 +90,30 @@ final class FloatingPanelController {
         onConfigChange?(config)
     }
 
+    /// SceneKit 主題的呈現方式（精簡／雕塑）。
+    func setPresentation(_ presentation: ScenePresentation) {
+        guard config.look.presentation != presentation else { return }
+        config.look.presentation = presentation
+        visualizerView.update(config: config)
+        onConfigChange?(config)
+    }
+
+    /// SceneKit 主題的畫質。
+    func setQuality(_ quality: RenderQuality) {
+        guard config.look.quality != quality else { return }
+        config.look.quality = quality
+        visualizerView.update(config: config)
+        onConfigChange?(config)
+    }
+
+    /// 音訊地形的外觀（線框／半透明曲面）。
+    func setTerrainSurface(_ surface: TerrainSurface) {
+        guard config.look.terrainSurface != surface else { return }
+        config.look.terrainSurface = surface
+        visualizerView.update(config: config)
+        onConfigChange?(config)
+    }
+
     /// 浮動視窗整體不透明度（0.3...1，超出會被夾住）；即時套用並存檔。
     func setOpacity(_ opacity: Double) {
         var next = config

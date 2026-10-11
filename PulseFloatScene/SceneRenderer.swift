@@ -73,6 +73,8 @@ public final class SceneRenderer {
     public private(set) var settings = SceneSettings()
     public private(set) var timing = SceneTiming()
     private var needsRender = true
+    /// 最後一次真正畫出來的畫面是否已經是靜止狀態；否則即使主題已靜止也要再畫一次最終的靜止畫面。
+    private var renderedAtRest = false
     private var colorTexture: (any MTLTexture)?
     private var depthTexture: (any MTLTexture)?
     private var targetKey = ""
@@ -135,11 +137,13 @@ public final class SceneRenderer {
     public func render(frame: SpectrumFrame, dt: Double, into layer: CAMetalLayer) -> Bool {
         guard let theme else { return false }
         let start = CACurrentMediaTime()
+        let wasAtRest = theme.isAtRest
         theme.update(frame: frame, dt: Self.clampDT(dt))
         timing.cpuUpdateMs = (CACurrentMediaTime() - start) * 1000
+        if !wasAtRest || !theme.isAtRest { renderedAtRest = false }
         let width = Int(layer.drawableSize.width), height = Int(layer.drawableSize.height)
         guard width > 0, height > 0 else { return false }
-        if theme.isAtRest && !needsRender {
+        if theme.isAtRest && renderedAtRest && !needsRender {
             timing.skippedFrames += 1
             timing.cpuEncodeMs = 0
             return false
@@ -158,6 +162,7 @@ public final class SceneRenderer {
         timing.gpuMs = gpuClock.value.withLock { $0 }
         timing.renderedFrames += 1
         needsRender = false
+        renderedAtRest = theme.isAtRest
         return true
     }
 
@@ -183,6 +188,7 @@ public final class SceneRenderer {
         timing.gpuMs = ms.isFinite ? ms : 0
         timing.renderedFrames += 1
         needsRender = false
+        renderedAtRest = theme.isAtRest
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
         pixels.withUnsafeMutableBytes { raw in
             guard let base = raw.baseAddress else { return }
@@ -193,9 +199,12 @@ public final class SceneRenderer {
 
     /// 只前進主題狀態、不繪製（量 CPU update 用）。
     public func advance(frame: SpectrumFrame, dt: Double) {
+        guard let theme else { return }
         let start = CACurrentMediaTime()
-        theme?.update(frame: frame, dt: Self.clampDT(dt))
+        let wasAtRest = theme.isAtRest
+        theme.update(frame: frame, dt: Self.clampDT(dt))
         timing.cpuUpdateMs = (CACurrentMediaTime() - start) * 1000
+        if !wasAtRest || !theme.isAtRest { renderedAtRest = false }
     }
 
     /// 主題目前是否靜止。
