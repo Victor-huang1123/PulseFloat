@@ -134,6 +134,12 @@ final class NowPlayingMonitor {
 
     private func queryTrack() {
         guard isActive, let app = currentApp, canQuery(app) else { return }
+        // 先用 NSRunningApplication 確認 App 已在執行才送 Apple event（腳本內也會再檢查），絕不把 App 開起來。
+        // 例如主程式已結束、只剩 helper 還在出聲：不讀歌曲資訊，改顯示圖示。
+        guard !NSRunningApplication.runningApplications(withBundleIdentifier: app.bundleID).isEmpty else {
+            if trackIdentity == nil { showIcon(for: app) }
+            return
+        }
         guard !queryInFlight else {
             queryPending = true
             return

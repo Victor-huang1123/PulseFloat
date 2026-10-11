@@ -67,6 +67,7 @@ public struct CenterArtwork: @unchecked Sendable, Equatable {
         self.kind = kind
     }
 
+    /// 只比較 id 與 kind；同一首歌換成不同 CGImage 實例仍視為相同，不會觸發交叉淡入。
     public static func == (lhs: CenterArtwork, rhs: CenterArtwork) -> Bool {
         lhs.id == rhs.id && lhs.kind == rhs.kind
     }
