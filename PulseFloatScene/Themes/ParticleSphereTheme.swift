@@ -46,10 +46,8 @@ final class ParticleSphereTheme: SceneTheme {
         // 精簡：球置中、光暈剛好碰到上下緣；雕塑：略俯視、球往上移，下方留出地面光池
         let compact = CameraPose(target: .zero, distance: 6.4, elevation: 6, azimuth: 0, fov: 28)
         let sculpture = CameraPose(target: SIMD3(0, -0.36, 0), distance: 6.8, elevation: 13, azimuth: -8, fov: 30)
-        stage.apply(settings, compact: compact, sculpture: sculpture, floorY: Self.floorY, pedestalRadius: nil, orbitSpeed: 3)
-        // 粒子不投射陰影（發光體），地面的接觸陰影由自己的光池負責：關掉陰影貼圖與只收陰影的地面，省一個繪製階段
-        stage.keyLight.light?.castsShadow = false
-        stage.shadowFloor.isHidden = true
+        stage.apply(settings, compact: compact, sculpture: sculpture, floorY: Self.floorY, pedestalRadius: nil, orbitSpeed: 3, shadows: false)
+        // 粒子不投射陰影（發光體），地面的接觸陰影由自己的光池負責：shadows: false 關掉陰影貼圖與只收陰影的地面
 
         let next = ParticleSphereRecipe.make(quality: settings.quality, presentation: settings.presentation)
         if next != recipe {

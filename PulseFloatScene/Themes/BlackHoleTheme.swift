@@ -31,7 +31,7 @@ struct BlackHoleLayout: Equatable {
             layout.diskRadial = sculpture ? 28 : 22
             layout.diskAngular = sculpture ? 200 : 160
             layout.octaves = 2
-            layout.streamCount = sculpture ? 4 : 3
+            layout.streamCount = sculpture ? 4 : 2
             layout.perStream = sculpture ? 420 : 300
             layout.dustCount = sculpture ? 500 : 260
             layout.ringSegments = 160
@@ -39,7 +39,7 @@ struct BlackHoleLayout: Equatable {
             layout.diskRadial = sculpture ? 40 : 34
             layout.diskAngular = sculpture ? 300 : 256
             layout.octaves = 3
-            layout.streamCount = sculpture ? 6 : 4
+            layout.streamCount = sculpture ? 6 : 3
             layout.perStream = sculpture ? 700 : 480
             layout.dustCount = sculpture ? 1300 : 600
             layout.ringSegments = 220
@@ -47,7 +47,7 @@ struct BlackHoleLayout: Equatable {
             layout.diskRadial = sculpture ? 56 : 48
             layout.diskAngular = sculpture ? 420 : 360
             layout.octaves = 4
-            layout.streamCount = sculpture ? 7 : 5
+            layout.streamCount = sculpture ? 7 : 3
             layout.perStream = sculpture ? 1000 : 640
             layout.dustCount = sculpture ? 2200 : 1000
             layout.ringSegments = 300
@@ -132,8 +132,8 @@ final class BlackHoleTheme: SceneTheme {
     func apply(_ settings: SceneSettings) {
         stage.apply(settings,
                     compact: CameraPose(target: SIMD3(0, 0.05, 0), distance: 4.4, elevation: 10, azimuth: 0, fov: 18),
-                    sculpture: CameraPose(target: SIMD3(0, -0.04, 0), distance: 4.0, elevation: 21, azimuth: 0, fov: 22),
-                    floorY: -0.78, pedestalRadius: nil, orbitSpeed: 3)
+                    sculpture: CameraPose(target: SIMD3(0, -0.04, 0), distance: 4.4, elevation: 21, azimuth: 0, fov: 22),
+                    floorY: -0.78, pedestalRadius: nil, orbitSpeed: 3, shadows: false)
         let next = BlackHoleLayout.make(quality: settings.quality, presentation: settings.presentation)
         layout = next
         if builtLayout != next {

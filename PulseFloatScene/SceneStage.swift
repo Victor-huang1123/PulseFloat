@@ -102,8 +102,9 @@ public final class SceneStage {
     ///   - floorY: 雕塑模式地面（陰影）的高度；台座頂面也在這裡。
     ///   - pedestalRadius: 台座半徑；nil 表示不要台座（只留陰影）。
     ///   - orbitSpeed: 雕塑模式下鏡頭每「音訊秒」環繞的角度（度）；靜音時音訊時鐘停止，鏡頭也停。
+    ///   - shadows: 雕塑模式是否投影到透明地面；自己發光、懸浮的主題傳 false，省掉整個陰影 pass。
     public func apply(_ settings: SceneSettings, compact: CameraPose, sculpture: CameraPose,
-                      floorY: Float = -1, pedestalRadius: Float? = 1.15, orbitSpeed: Float = 4) {
+                      floorY: Float = -1, pedestalRadius: Float? = 1.15, orbitSpeed: Float = 4, shadows: Bool = true) {
         self.settings = settings
         look = SceneMaterials.look(style: settings.style, palette: settings.palette)
         compactPose = compact
@@ -111,7 +112,7 @@ public final class SceneStage {
         self.orbitSpeed = orbitSpeed
         let isSculpture = settings.presentation == .sculpture
 
-        shadowFloor.isHidden = !isSculpture
+        shadowFloor.isHidden = !(isSculpture && shadows)
         shadowFloor.position = SCNVector3(0, CGFloat(floorY), 0)
         if let pedestalRadius, isSculpture {
             pedestal.isHidden = false
@@ -123,9 +124,9 @@ public final class SceneStage {
             pedestal.isHidden = true
         }
 
-        let shadows = isSculpture && settings.quality != .low
-        keyLight.light?.castsShadow = shadows
-        if shadows, let light = keyLight.light {
+        let castShadows = shadows && isSculpture && settings.quality != .low
+        keyLight.light?.castsShadow = castShadows
+        if castShadows, let light = keyLight.light {
             light.shadowMode = .forward
             light.shadowMapSize = settings.quality == .high ? CGSize(width: 2048, height: 2048) : CGSize(width: 1024, height: 1024)
             light.shadowSampleCount = settings.quality == .high ? 16 : 8

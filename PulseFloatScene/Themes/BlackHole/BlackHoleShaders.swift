@@ -195,7 +195,7 @@ enum BlackHoleShaders {
     #pragma body
     float u = in.v_disk.x;
     float s = clamp(in.v_disk.y, 0.0, 1.0);
-    float beam = pow(clamp(in.v_disk.z, 0.2, 2.2), 2.4);
+    float beam = pow(clamp(in.v_disk.z, 0.2, 1.8), 2.4);
     float weight = in.v_disk.w;
     float side = in.v_aux.x;
     float psi = u * 6.2831853 - u_dyn1[3].x;
@@ -247,14 +247,16 @@ enum BlackHoleShaders {
     I = I * (1.0 + 2.2 * pulse) + 0.9 * pulse * edgeOut;
     I *= u_style.x;
     // 最亮處（射束側的內緣、脈衝）才轉白，像過曝；其餘維持色相
-    col = mix(col, float3(1.0), smoothstep(2.6, 4.4, I) * u_hot.w);
-    // 柔和的色調曲線：亮處維持色相，不會整片截成白色；最亮處留一點給 HDR bloom
-    float3 rgb = col * (1.0 - exp(-I * 1.4)) * 1.05 + u_hot.rgb * max(I - 2.6, 0.0) * 0.12;
-    rgb *= 1.0 - 0.75 * lane;
+    // 最亮也只到「帶熱色的白」，不會整片變純白（在淺色桌布上會和背景融在一起、看不出盤面形狀）
+    col = mix(col, mix(u_hot.rgb, float3(1.0), 0.6), 0.75 * smoothstep(3.0, 5.5, I) * u_hot.w);
+    // 柔和的色調曲線：亮處維持色相；最亮處留一點給 HDR bloom（有上限）
+    float3 rgb = col * (1.0 - exp(-I * 1.4)) * 1.0 + u_hot.rgb * min(max(I - 2.6, 0.0), 3.0) * 0.07;
+    rgb *= 1.0 - 0.5 * lane;
     // 不透明度主要由半徑決定（條紋之間是暗色而不是透明，在淺色桌布上也看得到紋理）
     float alpha = u_style.y * edgeIn * edgeOut * (0.72 + 0.28 * n) * (0.62 + 0.38 * pow(inner, 0.7));
     alpha *= 1.0 - 0.4 * smoothstep(0.35, 0.85, s);   // 外圈較稀薄：淺色桌布上不會留下灰色的霧
-    alpha = clamp(max(alpha, lane * 0.85 * edgeOut) + 0.3 * pulse * edgeOut, 0.0, 1.0);
+    // 塵帶在外圈變淡：淺色桌布上不會留下灰色污漬
+    alpha = clamp(max(alpha, lane * 0.6 * edgeOut * (1.0 - 0.5 * s)) + 0.3 * pulse * edgeOut, 0.0, 1.0);
     rgb += u_dust.rgb * lane * alpha * 0.4;
     if (u_mode.x > 1.5) {
         // 次級像：亮度隨對應程度衰減
