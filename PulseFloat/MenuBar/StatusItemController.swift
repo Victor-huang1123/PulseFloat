@@ -13,11 +13,21 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private var windowModeItems: [NSMenuItem] = []
     private let audioStatus: () -> String
     private let audioStatusItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+    private let isDockIconVisible: () -> Bool
+    private let setDockIconVisible: (Bool) -> Void
+    private var dockIconItem: NSMenuItem?
 
-    /// audioStatus 在每次打開選單時呼叫，回傳目前音訊來源的說明文字。
-    init(panelController: FloatingPanelController, audioStatus: @escaping () -> String) {
+    /// audioStatus 在每次打開選單時呼叫，回傳目前音訊來源的說明文字；Dock 圖示的顯示狀態由 App 層保存。
+    init(
+        panelController: FloatingPanelController,
+        audioStatus: @escaping () -> String,
+        isDockIconVisible: @escaping () -> Bool,
+        setDockIconVisible: @escaping (Bool) -> Void
+    ) {
         self.panelController = panelController
         self.audioStatus = audioStatus
+        self.isDockIconVisible = isDockIconVisible
+        self.setDockIconVisible = setDockIconVisible
         statusItem = NSStatusBar.system.statusItem(withLength: 28)
         super.init()
 
@@ -61,6 +71,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let lock = makeItem(title: "鎖定並點擊穿透", action: #selector(toggleLock))
         lockItem = lock
         menu.addItem(lock)
+        let dockIcon = makeItem(title: "在 Dock 顯示圖示", action: #selector(toggleDockIcon))
+        dockIconItem = dockIcon
+        menu.addItem(dockIcon)
         menu.addItem(.separator())
         audioStatusItem.isEnabled = false
         menu.addItem(audioStatusItem)
@@ -85,6 +98,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         audioStatusItem.title = audioStatus()
+        dockIconItem?.state = isDockIconVisible() ? .on : .off
         visibilityItem?.state = panelController.isVisible ? .on : .off
         lockItem?.state = panelController.isLocked ? .on : .off
         for item in themeItems {
@@ -136,6 +150,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     @objc private func toggleVisibility() {
         panelController.toggleVisibility()
+    }
+
+    @objc private func toggleDockIcon() {
+        setDockIconVisible(!isDockIconVisible())
     }
 
     @objc private func toggleLock() {
