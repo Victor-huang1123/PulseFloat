@@ -45,7 +45,8 @@ struct TerrainLayout: Equatable {
     /// 精簡：低角度沿時間軸看過去，地形填滿寬扁的浮動條。
     static let compactPose = CameraPose(target: SIMD3(0, -0.36, -0.1), distance: 4.0, elevation: 23, azimuth: 0, fov: 30)
     /// 雕塑：約 30° 俯角的立體模型（diorama），看得到正面與低頻側的切面。
-    static let sculpturePose = CameraPose(target: SIMD3(0, -0.02, 0), distance: 3.9, elevation: 27, azimuth: -10, fov: 26)
+    /// target 壓低到台座中段，模型在畫面裡垂直置中：擺動到 ±6° 時台座的前角也不會被畫面下緣切掉。
+    static let sculpturePose = CameraPose(target: SIMD3(0, -0.25, 0), distance: 3.9, elevation: 27, azimuth: -10, fov: 26)
 
     /// 地形基準面（高度 0）在世界座標的 y。
     var groundY: Float { sculpture ? -0.12 : -0.3 }
@@ -180,6 +181,7 @@ final class TerrainTheme: SceneTheme {
         Self.set(material, "u_fillHot", palette.fillHot)
         Self.set(material, "u_lineCol", palette.line)
         Self.set(material, "u_lineHot", palette.lineHot)
+        Self.set(material, "u_lineFreq", palette.lineTreble)
         Self.set(material, "u_beatCol", palette.beat)
         Self.set(material, "u_keyLight", key)
         Self.set(material, "u_fillLight", fill)

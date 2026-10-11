@@ -13,6 +13,8 @@ struct TerrainPalette {
     var fillHot = SIMD4<Float>(0, 0, 0, 0)
     var line = SIMD4<Float>(1, 1, 1, 1)
     var lineHot = SIMD4<Float>(1, 1, 1, 0.4)
+    /// 高頻端的線色（rgb）與沿頻率軸混入的比例（a）；0 = 線色不隨頻率變。
+    var lineTreble = SIMD4<Float>(1, 1, 1, 0)
     var beat = SIMD4<Float>(1, 1, 1, 1)
     /// (ambient, key, fill, specular)
     var lighting = SIMD4<Float>(0.4, 0.6, 0.15, 0.3)
@@ -77,6 +79,9 @@ struct TerrainPalette {
             }
             p.line = v4(glowLow, 1)
             p.lineHot = v4(glowHigh, 0.3)
+            // 線色沿頻率軸（低 → 高）走風格的光色漸層：極光 青綠 → 紫、霓虹 青 → 洋紅，
+            // 否則兩者的線幾乎都是同一種青色（峰頂色只出現在少數高峰）。石墨保持單色線。
+            p.lineTreble = v4(glowHigh, solid ? 0 : 0.85)
             p.beat = v4(colors.pulse, isSurface ? 0.45 : 1)
             p.lighting = SIMD4(0.4, 0.66, 0.18, isSurface ? 0.32 : 0.2)
             p.shininess = isSurface ? 90 : 40

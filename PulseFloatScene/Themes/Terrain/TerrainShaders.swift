@@ -91,6 +91,7 @@ enum TerrainShaders {
     float4 u_fillHot;
     float4 u_lineCol;
     float4 u_lineHot;
+    float4 u_lineFreq;
     float4 u_beatCol;
     float4 u_keyLight;
     float4 u_fillLight;
@@ -147,7 +148,8 @@ enum TerrainShaders {
         float fh = max(fwidth(hc), 1e-5);
         contour = saturate(1.0 - abs(fract(hc + 0.5) - 0.5) / fh) * (1.0 - smoothstep(0.2, 0.5, fh)) * smoothstep(0.01, 0.05, hn);
     }
-    float3 lc = mix(u_lineCol.rgb, u_lineHot.rgb, smoothstep(0.5, 1.0, hn));
+    float3 lc = mix(u_lineCol.rgb, u_lineFreq.rgb, u_lineFreq.a * smoothstep(0.05, 0.95, in.tv.x));
+    lc = mix(lc, u_lineHot.rgb, smoothstep(0.5, 1.0, hn));
     lc = mix(lc, u_beatCol.rgb, beat * (1.0 - u_mode.y));
     float la = max(max(rowLine * u_mode.w * (1.0 + beat * (1.0 - u_mode.y)), colLine * u_lineHot.a), max(front, contour * u_mode.z));
     la = saturate(la) * u_lineCol.a * fog;
