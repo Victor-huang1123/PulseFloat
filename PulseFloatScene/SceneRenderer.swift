@@ -103,6 +103,7 @@ public final class SceneRenderer {
             let previous = theme?.stage
             theme = SceneThemeFactory.make(id)
             if let previous { theme?.stage.setUserCamera(yaw: previous.userYaw, pitch: previous.userPitch, zoom: previous.userZoom) }
+            theme?.setArtwork(artwork)
             self.settings = settings
             theme?.apply(settings)
             renderer.scene = theme?.scene
@@ -125,6 +126,16 @@ public final class SceneRenderer {
 
     /// 下一幀一定重繪（例如視窗重新顯示、尺寸改變）。
     public func invalidate() { needsRender = true }
+
+    /// 正在播放的封面（換主題時會帶到新主題）；改變時重繪一次。
+    public private(set) var artwork: CGImage?
+
+    public func setArtwork(_ image: CGImage?) {
+        guard image !== artwork else { return }
+        artwork = image
+        theme?.setArtwork(image)
+        needsRender = true
+    }
 
     /// 使用者在雕塑模式旋轉／縮放鏡頭（明確的操作，靜音時也會重繪一次）。
     public func setUserCamera(yaw: Float, pitch: Float, zoom: Float) {

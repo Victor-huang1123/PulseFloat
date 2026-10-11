@@ -234,3 +234,21 @@ final class VisualizerConfigTests: XCTestCase {
         }
     }
 }
+
+final class ThemeSelectionTests: XCTestCase {
+    func testAnalysisIsMergedIntoMobius() {
+        var config = VisualizerConfig()
+        config.look.theme = .analysis
+        XCTAssertEqual(config.clamped().look.theme, .mobius)
+        XCTAssertFalse(ThemeID.selectable.contains(.analysis))
+        XCTAssertTrue(ThemeID.selectable.contains(.mobius))
+        XCTAssertEqual(ThemeID.selectable.count, ThemeID.allCases.count - 1)
+    }
+
+    func testThemeCapabilitiesDriveTheMenu() {
+        XCTAssertTrue(ThemeID.radial.showsCenterArtwork && ThemeID.blackHole.showsCenterArtwork)
+        XCTAssertFalse(ThemeID.terrain.showsCenterArtwork || ThemeID.bars.showsCenterArtwork)
+        XCTAssertTrue(ThemeID.mobius.usesSculptureStyle && ThemeID.particleSphere.usesSculptureStyle)
+        XCTAssertFalse(ThemeID.radial.usesSculptureStyle || ThemeID.orbit.usesSculptureStyle)
+    }
+}

@@ -35,7 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let source = LiveSpectrumSource(config: floatingPanel.config, ring: ring)
         let tap = SystemAudioTap(ring: ring)
         tap.onFormatChange = { [weak source] sampleRate in source?.setSampleRate(sampleRate) }
-        // 正在播放的封面：只在功能開啟、浮動視窗可見且主題是圓環放射時偵測。
+        // 正在播放的封面：只在功能開啟、浮動視窗看得到且主題中央可以放封面（圓環放射、黑洞）時偵測。
         let visualizer = floatingPanel.visualizerView
         let nowPlaying = NowPlayingMonitor()
         nowPlaying.onArtworkChange = { [weak visualizer] artwork in visualizer?.artwork = artwork }
@@ -129,10 +129,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private static func audioStatusTitle(mode: LiveSpectrumSource.Mode?, tapState: SystemAudioTap.State?) -> String {
-        if case .failed = tapState { return "音訊來源：無法擷取系統音訊" }
+        if case .failed = tapState { return "音訊：無法擷取" }
         switch mode {
-        case .live: return "音訊來源：系統音訊（播放中）"
-        case .silent, nil: return "音訊來源：目前沒有聲音（若播放中仍沒反應，請檢查錄音權限）"
+        case .live: return "音訊：播放中"
+        case .silent, nil: return "音訊：沒有聲音"
         }
     }
 }

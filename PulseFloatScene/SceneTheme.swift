@@ -58,6 +58,12 @@ public protocol SceneTheme: AnyObject {
     func update(frame: SpectrumFrame, dt: Double)
     /// 上一次 `update` 之後畫面已完全靜止（宿主可以停止重繪）。
     var isAtRest: Bool { get }
+    /// 正在播放的封面（nil 表示不顯示）；只有中央適合放圖的主題（黑洞）會用，其他主題忽略。
+    func setArtwork(_ image: CGImage?)
+}
+
+extension SceneTheme {
+    public func setArtwork(_ image: CGImage?) {}
 }
 
 /// 依主題建立 SceneKit 主題；不是 SceneKit 主題時回傳 nil。

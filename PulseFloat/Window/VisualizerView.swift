@@ -15,11 +15,15 @@ final class VisualizerView: NSView {
     /// 3D 主題最近一幀的 CPU／GPU 時間（2D 主題時為 nil）。
     var sceneTiming: SceneTiming? { sceneActive ? sceneHost.timing : nil }
 
-    /// 圓環中央的封面或 App 圖示（只有圓環放射會畫）；nil 時畫面與原本相同。
+    /// 中央的封面或 App 圖示：圓環放射兩種都畫；黑洞只放歌曲封面。nil 時畫面與原本相同。
     var artwork: CenterArtwork? {
-        didSet { if artwork != oldValue { needsDisplay = true } }
+        didSet {
+            guard artwork != oldValue else { return }
+            needsDisplay = true
+            sceneHost.setArtwork(artwork?.kind == .cover ? artwork?.image : nil)
+        }
     }
-    /// 浮動視窗看得到（可見且沒有被遮住、螢幕沒睡）且主題是圓環放射時為 true。
+    /// 浮動視窗看得到（可見且沒有被遮住、螢幕沒睡）且主題中央可以放封面（圓環放射、黑洞）時為 true。
     private(set) var isShowingRadial = false
     /// isShowingRadial 改變時呼叫（App 層用來啟停「正在播放」偵測）。
     var onRadialVisibilityChange: ((Bool) -> Void)?
@@ -107,7 +111,7 @@ final class VisualizerView: NSView {
     /// 每個 tick 都會呼叫，只比較兩個值；狀態真的改變才通知。
     /// 切換視窗樣式時 view 會短暫離開視窗，但那發生在兩個 tick 之間，不會誤判成隱藏。
     private func refreshRadialVisibility() {
-        let showing = window?.isVisible == true && window?.occlusionState.contains(.visible) == true && look.theme == .radial
+        let showing = window?.isVisible == true && window?.occlusionState.contains(.visible) == true && look.theme.showsCenterArtwork
         guard showing != isShowingRadial else { return }
         isShowingRadial = showing
         onRadialVisibilityChange?(showing)

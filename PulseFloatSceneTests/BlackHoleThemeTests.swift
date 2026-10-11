@@ -226,3 +226,54 @@ final class BlackHoleThemeTests: XCTestCase {
         }
     }
 }
+
+/// 事件視界裡的封面：顯示時中央是圖片的顏色，關掉後回到純黑；不影響靜止判斷。
+@MainActor
+final class BlackHoleArtworkTests: XCTestCase {
+    private func solidImage(red: CGFloat, green: CGFloat, blue: CGFloat) throws -> CGImage {
+        let context = try XCTUnwrap(CGContext(data: nil, width: 64, height: 64, bitsPerComponent: 8, bytesPerRow: 0,
+                                              space: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
+                                              bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        context.setFillColor(CGColor(red: red, green: green, blue: blue, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 64, height: 64))
+        return try XCTUnwrap(context.makeImage())
+    }
+
+    private func centerPixel(_ image: SceneImage) -> (b: Int, g: Int, r: Int) {
+        let i = ((image.height / 2) * image.width + image.width / 2) * 4
+        return (Int(image.pixels[i]), Int(image.pixels[i + 1]), Int(image.pixels[i + 2]))
+    }
+
+    func testArtworkShowsInsideTheHorizonAndCanBeTurnedOff() throws {
+        let renderer = try XCTUnwrap(SceneRenderer())
+        renderer.setTheme(.blackHole, settings: SceneSettings())
+        let audio = DemoAudio(seed: 11)
+        audio.program = .silence
+        var frame = audio.next(dt: 1.0 / 60)
+        var i = 0
+        while i < 240 { frame = audio.next(dt: 1.0 / 60); renderer.advance(frame: frame, dt: 1.0 / 60); i += 1 }
+        let plain = try XCTUnwrap(renderer.renderOffscreen(frame: frame, dt: 1.0 / 60, width: 520, height: 200))
+        let black = centerPixel(plain)
+        XCTAssertLessThan(black.r + black.g + black.b, 30, "沒有封面時中央是黑色")
+
+        renderer.setArtwork(try solidImage(red: 0.9, green: 0.2, blue: 0.1))
+        let withArt = try XCTUnwrap(renderer.renderOffscreen(frame: frame, dt: 1.0 / 60, width: 520, height: 200))
+        let art = centerPixel(withArt)
+        XCTAssertGreaterThan(art.r, 150, "封面的紅色要看得到")
+        XCTAssertGreaterThan(art.r, art.b + 80)
+        XCTAssertTrue(renderer.isAtRest, "換封面不會讓主題離開靜止狀態")
+
+        renderer.setArtwork(nil)
+        let off = try XCTUnwrap(renderer.renderOffscreen(frame: frame, dt: 1.0 / 60, width: 520, height: 200))
+        XCTAssertEqual(off.pixels, plain.pixels, "關掉封面後回到原本的畫面")
+    }
+
+    func testArtworkCarriesOverWhenSwitchingThemes() throws {
+        let renderer = try XCTUnwrap(SceneRenderer())
+        renderer.setTheme(.terrain, settings: SceneSettings())
+        renderer.setArtwork(try solidImage(red: 0.1, green: 0.8, blue: 0.2))
+        renderer.setTheme(.blackHole, settings: SceneSettings())
+        let theme = try XCTUnwrap(renderer.theme as? BlackHoleTheme)
+        XCTAssertTrue(theme.showsArtwork)
+    }
+}

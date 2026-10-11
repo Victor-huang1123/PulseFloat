@@ -27,6 +27,15 @@ public enum ThemeID: String, CaseIterable, Codable, Sendable {
     /// 音訊地形：頻譜歷史堆成的山脈地形（SceneKit 3D）。
     case terrain
 
+    /// 選單與快速切換列出的主題（「解析」與「無限」是同一個 Möbius，只留一個）。
+    public static let selectable: [ThemeID] = allCases.filter { $0 != .analysis }
+
+    /// 中央可以顯示正在播放的封面（圓環放射、黑洞）。
+    public var showsCenterArtwork: Bool { self == .radial || self == .blackHole }
+
+    /// 使用雕塑材質色彩的主題（無限 Möbius 與 3D 主題）。
+    public var usesSculptureStyle: Bool { self == .mobius || self == .analysis || isScene }
+
     /// 是否由 SceneKit/Metal 繪製（其餘主題是 Core Graphics）。
     public var isScene: Bool {
         switch self {
@@ -462,6 +471,8 @@ public struct VisualizerConfig: Codable, Equatable, Sendable {
         result.motion.peakGravity = Self.clamp(motion.peakGravity, to: 0.5...10, fallback: Self.default.motion.peakGravity)
         result.look.barGap = Self.clamp(look.barGap, to: 0.05...0.6, fallback: Self.default.look.barGap)
         result.look.opacity = Self.clamp(look.opacity, to: 0.3...1, fallback: Self.default.look.opacity)
+        // 舊設定的「解析 Analysis OS」併入「無限 Möbius」。
+        if result.look.theme == .analysis { result.look.theme = .mobius }
         result.menubar.count = min(max(menubar.count, 5), 9)
         result.bands.fMaxHz = max(result.bands.fMaxHz, result.bands.fMinHz * 4)
         return result

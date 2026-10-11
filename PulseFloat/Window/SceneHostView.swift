@@ -98,6 +98,9 @@ final class SceneHostView: NSView {
         renderer?.render(frame: frame, dt: dt, into: metalLayer)
     }
 
+    /// 正在播放的封面（黑洞會放進事件視界；其他 3D 主題忽略）。
+    func setArtwork(_ image: CGImage?) { renderer?.setArtwork(image) }
+
     /// 下一幀一定重繪（視窗重新顯示時）。
     func invalidate() { renderer?.invalidate() }
 

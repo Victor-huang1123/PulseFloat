@@ -60,7 +60,7 @@ final class FloatingPanelController {
     }
 
     func cycleTheme() {
-        let themes = ThemeID.allCases
+        let themes = ThemeID.selectable
         guard let index = themes.firstIndex(of: config.look.theme) else { return }
         setTheme(themes[(index + 1) % themes.count])
     }

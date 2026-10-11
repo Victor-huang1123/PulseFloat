@@ -83,6 +83,8 @@ final class BlackHoleTheme: SceneTheme {
     /// 整個黑洞系統（立體聲平衡讓它微微傾斜）。
     private let system = SCNNode()
     private let horizon = SCNNode()
+    /// 事件視界裡的封面：一直面向鏡頭的圓形，邊緣淡到黑色，所以黑色剪影不變；跟著核心一起脈動。
+    private let artwork = SCNNode()
     // 細環與粒子分成盤後（先畫，被半透明盤面蓋住）與盤前（最後畫）兩個圖層。
     private let ringsBehind = BlackHoleLayer(geometry: BlackHoleShaders.ringGeometry, fragment: BlackHoleShaders.ringFragment, order: 2)
     private let dustBehind = BlackHoleLayer(geometry: BlackHoleShaders.particleGeometry, fragment: BlackHoleShaders.particleFragment, order: 3)
@@ -121,8 +123,44 @@ final class BlackHoleTheme: SceneTheme {
         horizon.geometry = sphere
         horizon.renderingOrder = 0
         system.addChildNode(horizon)
+        artwork.geometry = Self.artworkPlane()
+        artwork.renderingOrder = 1
+        artwork.castsShadow = false
+        artwork.isHidden = true
+        artwork.constraints = [SCNBillboardConstraint()]
+        horizon.addChildNode(artwork)
         for layer in layers { system.addChildNode(layer.node) }
     }
+
+    /// 封面放在核心正中央、忽略深度測試（不被黑球擋住）但寫入深度，所以盤面近側仍會蓋在它前面、遠側在它後面。
+    private static func artworkPlane() -> SCNGeometry {
+        let side = CGFloat(0.30 * 2 * 0.8)
+        let plane = SCNPlane(width: side, height: side)
+        let material = SCNMaterial()
+        material.lightingModel = .constant
+        material.readsFromDepthBuffer = false
+        material.writesToDepthBuffer = true
+        material.isDoubleSided = true
+        material.shaderModifiers = [.fragment: """
+            #pragma body
+            float2 uv = _surface.diffuseTexcoord - 0.5;
+            float d = length(uv) * 2.0;
+            if (d > 1.0) { discard_fragment(); }
+            // 輸出是線性值直接寫入（沒有 sRGB 編碼），照片要先編回去才不會偏暗；邊緣淡到黑色，融進事件視界。
+            float3 c = pow(max(_output.color.rgb, float3(0.0)), float3(1.0 / 2.2));
+            _output.color = float4(c * 0.92 * (1.0 - smoothstep(0.58, 1.0, d)), 1.0);
+            """]
+        plane.firstMaterial = material
+        return plane
+    }
+
+    func setArtwork(_ image: CGImage?) {
+        artwork.geometry?.firstMaterial?.diffuse.contents = image
+        artwork.isHidden = image == nil
+    }
+
+    /// 封面目前是否顯示（測試用）。
+    var showsArtwork: Bool { !artwork.isHidden }
 
     /// 目前畫面使用的粒子數（測試用）。
     var particleCount: Int { builtLayout?.particleCount ?? 0 }

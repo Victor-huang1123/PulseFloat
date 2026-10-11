@@ -17,6 +17,13 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private var presentationItems: [NSMenuItem] = []
     private var qualityItems: [NSMenuItem] = []
     private var surfaceItems: [NSMenuItem] = []
+    // 只和部分主題有關的項目：打開選單時依目前主題顯示或隱藏，避免誤導。
+    private var paletteMenuItem: NSMenuItem?
+    private var styleMenuItem: NSMenuItem?
+    private var cameraMenuItem: NSMenuItem?
+    private var qualityMenuItem: NSMenuItem?
+    private var surfaceMenuItem: NSMenuItem?
+    private let opacityValueLabel = NSTextField(labelWithString: "100%")
     private let sceneTimingItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private var thumbnailLook: VisualizerConfig.Look?
     private let opacitySlider = NSSlider(value: 1, minValue: 0.3, maxValue: 1, target: nil, action: nil)
@@ -63,13 +70,13 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let menu = NSMenu()
         menu.delegate = self
         menu.autoenablesItems = false
-        let visibility = makeItem(title: "顯示浮動視窗", action: #selector(toggleVisibility))
+        let visibility = makeItem(title: "隱藏浮動視窗", action: #selector(toggleVisibility))
         visibilityItem = visibility
         menu.addItem(visibility)
 
         let themes = NSMenu()
         themes.autoenablesItems = false
-        for theme in ThemeID.allCases {
+        for theme in ThemeID.selectable {
             let item = makeItem(title: Self.title(for: theme), action: #selector(selectTheme(_:)))
             item.representedObject = theme.rawValue
             themes.addItem(item)
@@ -79,24 +86,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         themeItem.submenu = themes
         menu.addItem(themeItem)
 
-        // 外觀相關的設定集中在一個子選單，主選單保持精簡。
-        let appearance = NSMenu()
-        appearance.autoenablesItems = false
-
-        let modes = NSMenu()
-        modes.autoenablesItems = false
-        for mode in WindowMode.allCases {
-            let item = makeItem(
-                title: mode == .card ? "毛玻璃卡片" : "透明",
-                action: #selector(selectWindowMode(_:))
-            )
-            item.representedObject = mode.rawValue
-            modes.addItem(item)
-            windowModeItems.append(item)
-        }
-        let modeItem = NSMenuItem(title: "視窗樣式", action: nil, keyEquivalent: "")
-        modeItem.submenu = modes
-        appearance.addItem(modeItem)
+        // 目前主題才用得到的設定（menuNeedsUpdate 依主題顯示／隱藏）。
+        let artwork = makeItem(title: "中央顯示封面", action: #selector(toggleNowPlayingArtwork))
+        artwork.toolTip = "圓環放射與黑洞：在中央顯示正在播放的歌曲封面。"
+        nowPlayingArtworkItem = artwork
+        menu.addItem(artwork)
 
         let palettes = NSMenu()
         palettes.autoenablesItems = false
@@ -107,13 +101,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             palettes.addItem(item)
             paletteItems.append(item)
         }
-        palettes.addItem(.separator())
-        let colored = makeItem(title: "選單列圖示也用配色", action: #selector(toggleColoredIcon))
-        coloredIconItem = colored
-        palettes.addItem(colored)
         let paletteItem = NSMenuItem(title: "配色", action: nil, keyEquivalent: "")
         paletteItem.submenu = palettes
-        appearance.addItem(paletteItem)
+        paletteMenuItem = paletteItem
+        menu.addItem(paletteItem)
 
         let styles = NSMenu()
         styles.autoenablesItems = false
@@ -124,25 +115,47 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             styles.addItem(item)
             styleItems.append(item)
         }
-        let styleItem = NSMenuItem(title: "雕塑色彩（3D）", action: nil, keyEquivalent: "")
+        let styleItem = NSMenuItem(title: "材質色彩", action: nil, keyEquivalent: "")
         styleItem.submenu = styles
-        appearance.addItem(styleItem)
-        appearance.addItem(makeSceneMenuItem())
-        appearance.addItem(.separator())
-        let artwork = makeItem(title: "圓環中央顯示封面", action: #selector(toggleNowPlayingArtwork))
-        nowPlayingArtworkItem = artwork
-        appearance.addItem(artwork)
-        appearance.addItem(.separator())
-        appearance.addItem(makeOpacityItem())
-        let appearanceItem = NSMenuItem(title: "外觀", action: nil, keyEquivalent: "")
-        appearanceItem.submenu = appearance
-        menu.addItem(appearanceItem)
+        styleMenuItem = styleItem
+        menu.addItem(styleItem)
 
+        cameraMenuItem = makeChoiceMenu(title: "鏡頭", choices: [
+            (ScenePresentation.compact.rawValue, "填滿視窗"),
+            (ScenePresentation.sculpture.rawValue, "立體展示（⌥ 拖曳旋轉）"),
+        ], action: #selector(selectPresentation(_:)), into: &presentationItems, in: menu)
+        qualityMenuItem = makeChoiceMenu(title: "畫質", choices: [
+            (RenderQuality.low.rawValue, "低"), (RenderQuality.medium.rawValue, "中"), (RenderQuality.high.rawValue, "高"),
+        ], action: #selector(selectQuality(_:)), into: &qualityItems, in: menu)
+        if let qualityMenu = qualityMenuItem?.submenu {
+            qualityMenu.addItem(.separator())
+            sceneTimingItem.isEnabled = false
+            qualityMenu.addItem(sceneTimingItem)
+        }
+        surfaceMenuItem = makeChoiceMenu(title: "地形外觀", choices: [
+            (TerrainSurface.wireframe.rawValue, "線框"), (TerrainSurface.surface.rawValue, "半透明曲面"),
+        ], action: #selector(selectTerrainSurface(_:)), into: &surfaceItems, in: menu)
+
+        menu.addItem(.separator())
+        menu.addItem(makeOpacityItem())
+        let modes = NSMenu()
+        modes.autoenablesItems = false
+        for mode in WindowMode.allCases {
+            let item = makeItem(title: mode == .card ? "毛玻璃卡片" : "透明", action: #selector(selectWindowMode(_:)))
+            item.representedObject = mode.rawValue
+            modes.addItem(item)
+            windowModeItems.append(item)
+        }
+        let modeItem = NSMenuItem(title: "視窗樣式", action: nil, keyEquivalent: "")
+        modeItem.submenu = modes
+        menu.addItem(modeItem)
         let lock = makeItem(title: "鎖定並點擊穿透", action: #selector(toggleLock))
         lockItem = lock
         menu.addItem(lock)
+
         menu.addItem(.separator())
         audioStatusItem.isEnabled = false
+        audioStatusItem.toolTip = "若播放中仍沒反應，請在「更多」打開「螢幕與系統錄音」設定檢查權限。"
         menu.addItem(audioStatusItem)
         nowPlayingInfoItem.isEnabled = false
         nowPlayingInfoItem.isHidden = true
@@ -154,7 +167,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let dockIcon = makeItem(title: "在 Dock 顯示圖示", action: #selector(toggleDockIcon))
         dockIconItem = dockIcon
         more.addItem(dockIcon)
-        more.addItem(makeItem(title: "開啟「螢幕與系統錄音」設定…", action: #selector(openAudioCaptureSettings)))
+        let colored = makeItem(title: "選單列圖示也用配色", action: #selector(toggleColoredIcon))
+        coloredIconItem = colored
+        more.addItem(colored)
+        more.addItem(makeItem(title: "螢幕與系統錄音設定…", action: #selector(openAudioCaptureSettings)))
         more.addItem(.separator())
         more.addItem(makeItem(title: "關於 PulseFloat", action: #selector(showAbout)))
         let moreItem = NSMenuItem(title: "更多", action: nil, keyEquivalent: "")
@@ -182,9 +198,17 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let artworkEnabled = isNowPlayingArtworkEnabled()
         nowPlayingArtworkItem?.state = artworkEnabled ? .on : .off
         let summary = artworkEnabled ? nowPlayingSummary() : nil
-        nowPlayingInfoItem.title = summary.map { "正在播放：\($0)" } ?? ""
+        nowPlayingInfoItem.title = summary.map { "♪ " + Self.truncated($0, to: 22) } ?? ""
+        nowPlayingInfoItem.toolTip = summary
         nowPlayingInfoItem.isHidden = summary == nil
-        visibilityItem?.state = panelController.isVisible ? .on : .off
+        visibilityItem?.title = panelController.isVisible ? "隱藏浮動視窗" : "顯示浮動視窗"
+        let current = panelController.config.look
+        nowPlayingArtworkItem?.isHidden = !current.theme.showsCenterArtwork
+        styleMenuItem?.isHidden = !current.theme.usesSculptureStyle
+        paletteMenuItem?.isHidden = current.theme.usesSculptureStyle && current.sculptureStyle != .palette
+        cameraMenuItem?.isHidden = !current.theme.isScene
+        qualityMenuItem?.isHidden = !current.theme.isScene
+        surfaceMenuItem?.isHidden = current.theme != .terrain
         lockItem?.state = panelController.isLocked ? .on : .off
         for item in themeItems {
             item.state = (item.representedObject as? String) == panelController.config.look.theme.rawValue ? .on : .off
@@ -200,7 +224,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         for item in qualityItems { item.state = (item.representedObject as? String) == look.quality.rawValue ? .on : .off }
         for item in surfaceItems { item.state = (item.representedObject as? String) == look.terrainSurface.rawValue ? .on : .off }
         if let timing = panelController.visualizerView.sceneTiming {
-            sceneTimingItem.title = String(format: "效能：CPU %.2f ms（更新 %.2f＋繪製指令 %.2f）・GPU %.2f ms", timing.cpuMs, timing.cpuUpdateMs, timing.cpuEncodeMs, timing.gpuMs)
+            sceneTimingItem.title = String(format: "CPU %.2f ms・GPU %.2f ms", timing.cpuMs, timing.gpuMs)
+            sceneTimingItem.toolTip = String(format: "每幀 CPU：更新 %.2f ms＋繪製指令 %.2f ms；GPU 另外量。", timing.cpuUpdateMs, timing.cpuEncodeMs)
             sceneTimingItem.isHidden = false
         } else {
             sceneTimingItem.isHidden = true
@@ -277,48 +302,25 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         return image
     }
 
-    /// 「3D 主題」子選單：呈現方式、畫質、地形外觀與目前的 CPU／GPU 時間。
-    private func makeSceneMenuItem() -> NSMenuItem {
-        let menu = NSMenu()
-        menu.autoenablesItems = false
-        let header = NSMenuItem(title: "呈現方式", action: nil, keyEquivalent: "")
-        header.isEnabled = false
-        menu.addItem(header)
-        for (presentation, title) in [(ScenePresentation.compact, "精簡（浮動條）"), (.sculpture, "雕塑（⌥ 拖曳旋轉・捲動縮放）")] {
-            let item = makeItem(title: title, action: #selector(selectPresentation(_:)))
-            item.representedObject = presentation.rawValue
-            item.indentationLevel = 1
-            menu.addItem(item)
-            presentationItems.append(item)
+    /// 一個單選子選單（例如鏡頭、畫質）；選項加進 items 供 menuNeedsUpdate 打勾。
+    private func makeChoiceMenu(title: String, choices: [(String, String)], action: Selector,
+                                into items: inout [NSMenuItem], in menu: NSMenu) -> NSMenuItem {
+        let submenu = NSMenu()
+        submenu.autoenablesItems = false
+        for (raw, label) in choices {
+            let item = makeItem(title: label, action: action)
+            item.representedObject = raw
+            submenu.addItem(item)
+            items.append(item)
         }
-        menu.addItem(.separator())
-        let qualityHeader = NSMenuItem(title: "畫質", action: nil, keyEquivalent: "")
-        qualityHeader.isEnabled = false
-        menu.addItem(qualityHeader)
-        for (quality, title) in [(RenderQuality.low, "低"), (.medium, "中"), (.high, "高")] {
-            let item = makeItem(title: title, action: #selector(selectQuality(_:)))
-            item.representedObject = quality.rawValue
-            item.indentationLevel = 1
-            menu.addItem(item)
-            qualityItems.append(item)
-        }
-        menu.addItem(.separator())
-        let surfaceHeader = NSMenuItem(title: "音訊地形外觀", action: nil, keyEquivalent: "")
-        surfaceHeader.isEnabled = false
-        menu.addItem(surfaceHeader)
-        for (surface, title) in [(TerrainSurface.wireframe, "線框地景"), (.surface, "半透明曲面")] {
-            let item = makeItem(title: title, action: #selector(selectTerrainSurface(_:)))
-            item.representedObject = surface.rawValue
-            item.indentationLevel = 1
-            menu.addItem(item)
-            surfaceItems.append(item)
-        }
-        menu.addItem(.separator())
-        sceneTimingItem.isEnabled = false
-        menu.addItem(sceneTimingItem)
-        let item = NSMenuItem(title: "3D 設定", action: nil, keyEquivalent: "")
-        item.submenu = menu
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.submenu = submenu
+        menu.addItem(item)
         return item
+    }
+
+    private static func truncated(_ text: String, to limit: Int) -> String {
+        text.count <= limit ? text : String(text.prefix(limit - 1)) + "…"
     }
 
     /// 主題縮圖跟著配色與雕塑色彩；設定沒變就沿用。
@@ -386,14 +388,13 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         case .radial: "圓環放射"
         case .neon: "霓虹光暈"
         case .led: "極簡點陣"
-        case .orbit: "軌道 Orbit"
-        case .hud: "儀表 HUD"
-        case .constellation: "星圖 Constellation"
-        case .mobius: "無限 Möbius（3D）"
-        case .analysis: "解析 Analysis OS（3D）"
-        case .blackHole: "黑洞 Black Hole（3D）"
-        case .particleSphere: "粒子球 Particle Sphere（3D）"
-        case .terrain: "音訊地形 Audio Terrain（3D）"
+        case .orbit: "軌道"
+        case .hud: "儀表"
+        case .constellation: "星圖"
+        case .mobius, .analysis: "無限 Möbius"
+        case .blackHole: "黑洞・3D"
+        case .particleSphere: "粒子球・3D"
+        case .terrain: "音訊地形・3D"
         }
     }
 
@@ -431,27 +432,35 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         panelController.setSculptureStyle(style)
     }
 
-    /// 選單裡的「透明度」滑桿（30%–100%），拖曳時即時套用；選單在拖曳時保持開啟。
+    /// 選單裡的「透明度」：一列，滑桿跟著選單寬度伸長；拖曳時即時套用，選單保持開啟。
     private func makeOpacityItem() -> NSMenuItem {
-        // 一列：左邊「透明度 100%」、右邊滑桿。
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 230, height: 26))
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 220, height: 28))
+        container.autoresizingMask = [.width]
         opacityLabel.font = NSFont.menuFont(ofSize: 0)
-        opacityLabel.frame = NSRect(x: 20, y: 4, width: 92, height: 18)
-        opacitySlider.frame = NSRect(x: 112, y: 3, width: 104, height: 20)
+        opacityLabel.stringValue = "透明度"
+        opacityLabel.frame = NSRect(x: 20, y: 5, width: 48, height: 18)
+        opacitySlider.frame = NSRect(x: 70, y: 4, width: 96, height: 20)
+        opacitySlider.autoresizingMask = [.width]
         opacitySlider.controlSize = .small
         opacitySlider.isContinuous = true
         opacitySlider.target = self
         opacitySlider.action = #selector(opacityChanged(_:))
         opacitySlider.setAccessibilityLabel("浮動視窗透明度")
+        opacityValueLabel.font = NSFont.monospacedDigitSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .regular)
+        opacityValueLabel.textColor = .secondaryLabelColor
+        opacityValueLabel.alignment = .right
+        opacityValueLabel.frame = NSRect(x: 168, y: 6, width: 38, height: 16)
+        opacityValueLabel.autoresizingMask = [.minXMargin]
         container.addSubview(opacityLabel)
         container.addSubview(opacitySlider)
+        container.addSubview(opacityValueLabel)
         let item = NSMenuItem()
         item.view = container
         return item
     }
 
     private func updateOpacityLabel() {
-        opacityLabel.stringValue = "透明度 \(Int((opacitySlider.doubleValue * 100).rounded()))%"
+        opacityValueLabel.stringValue = "\(Int((opacitySlider.doubleValue * 100).rounded()))%"
     }
 
     @objc private func opacityChanged(_ sender: NSSlider) {

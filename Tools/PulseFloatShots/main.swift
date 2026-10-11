@@ -26,6 +26,10 @@ func option(_ name: String) -> String? {
 let themes: [ThemeID] = (option("--themes") ?? "blackhole,particles,terrain").split(separator: ",").compactMap { ThemeID(rawValue: String($0)) }
 let baseStyle = option("--style").flatMap(SculptureStyle.init(rawValue:))
 let quick = arguments.contains("--quick")
+// --artwork <圖片>：放進支援封面的主題（黑洞）中央。
+let artworkImage: CGImage? = option("--artwork").flatMap { path in
+    CGImageSourceCreateWithURL(URL(fileURLWithPath: path) as CFURL, nil).flatMap { CGImageSourceCreateImageAtIndex($0, 0, nil) }
+}
 let width = 1040, height = 400
 let dt = 1.0 / 60
 
@@ -102,6 +106,7 @@ func capture(_ theme: ThemeID, presentation: ScenePresentation, style: Sculpture
     guard let renderer = SceneRenderer() else { return result }
     renderer.setTheme(theme, settings: SceneSettings(style: style, palette: .aurora, presentation: presentation, quality: quality,
                                                      aspect: Double(width) / Double(height)))
+    renderer.setArtwork(artworkImage)
     let audio = DemoAudio(seed: 7)
     audio.program = .music
     func advance(to seconds: Double) {

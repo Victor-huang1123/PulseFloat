@@ -22,7 +22,7 @@ enum ThemeThumbnails {
         guard let last = frames.last else { return [:] }
 
         var result: [ThemeID: NSImage] = [:]
-        for theme in ThemeID.allCases {
+        for theme in ThemeID.selectable {
             if theme.isScene, let renderer = SceneRenderer() {
                 var settings = SceneSettings(look: look, aspect: Double(size.width / size.height))
                 settings.presentation = .compact
