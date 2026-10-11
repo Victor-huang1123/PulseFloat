@@ -34,7 +34,7 @@ enum ParticleSphereShader {
     float2 corner = _geometry.texcoords[0];
     float profile = attr.w;
 
-    // 晶格自轉（世界 → 晶格的轉置 = 晶格 → 世界）
+    // 晶格自轉：u_lat 前三行是 latticeRotation 的三列，p = L · base
     float3 p = float3(dot(u_lat0.xyz, base), dot(u_lat1.xyz, base), dot(u_lat2.xyz, base));
     float r0 = length(p);
     float3 d = r0 > 1.0e-4 ? p / r0 : float3(0.0, 0.0, 1.0);

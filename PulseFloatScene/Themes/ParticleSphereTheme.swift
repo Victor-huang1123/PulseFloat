@@ -114,7 +114,7 @@ final class ParticleSphereTheme: SceneTheme {
         }
         set("u_sh1", SIMD4(c[16], c[17], c[18], c[19]), SIMD4(c[20], c[21], c[22], c[23]),
             SIMD4(dynamics.expansion, dynamics.trebleAmplitude, dynamics.treblePhase, dynamics.coreGlow), amps)
-        // 晶格 → 世界（著色器做 p = M · base，傳 M 的三列）
+        // 晶格自轉：傳 Lᵀ 的三行（= L 的三列），著色器算 p = L · base（L = latticeRotation；方向不影響畫面）
         let lattice = ParticleSphereDynamics.latticeRotation(dynamics.spin).transpose
         set("u_lat", SIMD4(lattice.columns.0, 0), SIMD4(lattice.columns.1, 0), SIMD4(lattice.columns.2, 0), keyDirection)
         // 世界 → 變形場座標（f = R · d）

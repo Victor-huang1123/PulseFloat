@@ -35,10 +35,11 @@ struct ParticleSpherePalette: Equatable {
             glowGain = 0.5
             bodyOpacity = 1
         case .graphite:
-            glow = [RGB(red: 150, green: 154, blue: 164), RGB(red: 118, green: 121, blue: 130), RGB(red: 92, green: 95, blue: 104)]
+            // 冷鋼灰的點＋萊姆色的核心與能量（暖白的 porcelain 是琥珀熱點，兩者一眼可分）
+            glow = [RGB(red: 128, green: 138, blue: 156), RGB(red: 104, green: 113, blue: 130), RGB(red: 84, green: 92, blue: 108)]
             hot = colors.accent
-            hotMix = 0.8
-            glowGain = 0.55
+            hotMix = 1
+            glowGain = 0.6
             bodyOpacity = 1
         case .aurora, .neon:
             hot = RGB(red: 255, green: 255, blue: 255)
