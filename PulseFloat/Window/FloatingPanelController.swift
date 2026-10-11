@@ -68,6 +68,17 @@ final class FloatingPanelController {
         onConfigChange?(config)
     }
 
+    /// 浮動視窗整體不透明度（0.3...1，超出會被夾住）；即時套用並存檔。
+    func setOpacity(_ opacity: Double) {
+        var next = config
+        next.look.opacity = opacity
+        next = next.clamped()
+        guard next.look.opacity != config.look.opacity else { return }
+        config = next
+        panel.alphaValue = config.look.opacity
+        onConfigChange?(config)
+    }
+
     /// 選單列圖示是否使用配色（關閉時是跟隨系統的單色 template 圖示）。
     func setMenuBarColored(_ colored: Bool) {
         guard config.menubar.colored != colored else { return }

@@ -13,6 +13,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private var windowModeItems: [NSMenuItem] = []
     private var paletteItems: [NSMenuItem] = []
     private var coloredIconItem: NSMenuItem?
+    private let opacitySlider = NSSlider(value: 1, minValue: 0.3, maxValue: 1, target: nil, action: nil)
+    private let opacityLabel = NSTextField(labelWithString: "透明度")
     private let audioStatus: () -> String
     private let audioStatusItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private let isDockIconVisible: () -> Bool
@@ -87,6 +89,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         paletteItem.submenu = palettes
         menu.addItem(paletteItem)
 
+        menu.addItem(makeOpacityItem())
+
         let lock = makeItem(title: "鎖定並點擊穿透", action: #selector(toggleLock))
         lockItem = lock
         menu.addItem(lock)
@@ -127,6 +131,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             item.state = (item.representedObject as? String) == panelController.config.look.palette.rawValue ? .on : .off
         }
         coloredIconItem?.state = panelController.config.menubar.colored ? .on : .off
+        opacitySlider.doubleValue = panelController.config.look.opacity
+        updateOpacityLabel()
         for item in windowModeItems {
             item.state = (item.representedObject as? String) == panelController.config.look.windowMode.rawValue ? .on : .off
         }
@@ -231,6 +237,32 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         guard let rawValue = item.representedObject as? String,
               let palette = PaletteID(rawValue: rawValue) else { return }
         panelController.setPalette(palette)
+    }
+
+    /// 選單裡的「透明度」滑桿（30%–100%），拖曳時即時套用；選單在拖曳時保持開啟。
+    private func makeOpacityItem() -> NSMenuItem {
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 240, height: 46))
+        opacityLabel.font = NSFont.menuFont(ofSize: 0)
+        opacityLabel.frame = NSRect(x: 20, y: 24, width: 200, height: 18)
+        opacitySlider.frame = NSRect(x: 18, y: 4, width: 204, height: 20)
+        opacitySlider.isContinuous = true
+        opacitySlider.target = self
+        opacitySlider.action = #selector(opacityChanged(_:))
+        opacitySlider.setAccessibilityLabel("浮動視窗透明度")
+        container.addSubview(opacityLabel)
+        container.addSubview(opacitySlider)
+        let item = NSMenuItem()
+        item.view = container
+        return item
+    }
+
+    private func updateOpacityLabel() {
+        opacityLabel.stringValue = "透明度　\(Int((opacitySlider.doubleValue * 100).rounded()))%"
+    }
+
+    @objc private func opacityChanged(_ sender: NSSlider) {
+        panelController.setOpacity(sender.doubleValue)
+        updateOpacityLabel()
     }
 
     @objc private func toggleColoredIcon() {
