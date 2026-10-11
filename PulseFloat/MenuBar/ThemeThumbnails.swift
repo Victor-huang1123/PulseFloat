@@ -3,11 +3,11 @@ import PulseFloatCore
 import PulseFloatScene
 
 /// 主題選單的縮圖：用真正的 renderer 畫一張「副歌拍點」的畫面（合成示範音樂經過真實的特徵引擎）。
-/// 2D 主題用 Core Graphics renderer，3D 主題用離屏 SceneRenderer；疊在深色圓角底上，96×36 pt @2x。
+/// 2D 主題用 Core Graphics renderer，3D 主題用離屏 SceneRenderer；疊在深色圓角底上，64×24 pt @2x。
 /// 產生一次後快取；只在主執行緒使用。
 @MainActor
 enum ThemeThumbnails {
-    static let size = NSSize(width: 96, height: 36)
+    static let size = NSSize(width: 64, height: 24)
     private static let background = RGB(red: 18, green: 21, blue: 32)
 
     /// 依目前的配色與雕塑色彩產生所有主題的縮圖。
@@ -86,7 +86,7 @@ enum ThemeThumbnails {
     private static func rounded(_ image: CGImage?) -> NSImage? {
         guard let image else { return nil }
         return NSImage(size: size, flipped: false) { rect in
-            NSBezierPath(roundedRect: rect, xRadius: 5, yRadius: 5).addClip()
+            NSBezierPath(roundedRect: rect, xRadius: 4, yRadius: 4).addClip()
             NSGraphicsContext.current?.cgContext.draw(image, in: rect)
             return true
         }

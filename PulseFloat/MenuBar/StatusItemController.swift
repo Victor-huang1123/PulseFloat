@@ -79,13 +79,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         themeItem.submenu = themes
         menu.addItem(themeItem)
 
-        let artwork = makeItem(title: "圓環中央顯示封面（正在播放的音樂／影片）", action: #selector(toggleNowPlayingArtwork))
-        nowPlayingArtworkItem = artwork
-        menu.addItem(artwork)
-        nowPlayingInfoItem.isEnabled = false
-        nowPlayingInfoItem.isHidden = true
-        nowPlayingInfoItem.indentationLevel = 1
-        menu.addItem(nowPlayingInfoItem)
+        // 外觀相關的設定集中在一個子選單，主選單保持精簡。
+        let appearance = NSMenu()
+        appearance.autoenablesItems = false
 
         let modes = NSMenu()
         modes.autoenablesItems = false
@@ -100,7 +96,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         }
         let modeItem = NSMenuItem(title: "視窗樣式", action: nil, keyEquivalent: "")
         modeItem.submenu = modes
-        menu.addItem(modeItem)
+        appearance.addItem(modeItem)
 
         let palettes = NSMenu()
         palettes.autoenablesItems = false
@@ -117,7 +113,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         palettes.addItem(colored)
         let paletteItem = NSMenuItem(title: "配色", action: nil, keyEquivalent: "")
         paletteItem.submenu = palettes
-        menu.addItem(paletteItem)
+        appearance.addItem(paletteItem)
 
         let styles = NSMenu()
         styles.autoenablesItems = false
@@ -128,25 +124,42 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             styles.addItem(item)
             styleItems.append(item)
         }
-        let styleItem = NSMenuItem(title: "雕塑色彩（3D 主題）", action: nil, keyEquivalent: "")
+        let styleItem = NSMenuItem(title: "雕塑色彩（3D）", action: nil, keyEquivalent: "")
         styleItem.submenu = styles
-        menu.addItem(styleItem)
-        menu.addItem(makeSceneMenuItem())
-
-        menu.addItem(makeOpacityItem())
+        appearance.addItem(styleItem)
+        appearance.addItem(makeSceneMenuItem())
+        appearance.addItem(.separator())
+        let artwork = makeItem(title: "圓環中央顯示封面", action: #selector(toggleNowPlayingArtwork))
+        nowPlayingArtworkItem = artwork
+        appearance.addItem(artwork)
+        appearance.addItem(.separator())
+        appearance.addItem(makeOpacityItem())
+        let appearanceItem = NSMenuItem(title: "外觀", action: nil, keyEquivalent: "")
+        appearanceItem.submenu = appearance
+        menu.addItem(appearanceItem)
 
         let lock = makeItem(title: "鎖定並點擊穿透", action: #selector(toggleLock))
         lockItem = lock
         menu.addItem(lock)
-        let dockIcon = makeItem(title: "在 Dock 顯示圖示", action: #selector(toggleDockIcon))
-        dockIconItem = dockIcon
-        menu.addItem(dockIcon)
         menu.addItem(.separator())
         audioStatusItem.isEnabled = false
         menu.addItem(audioStatusItem)
-        menu.addItem(makeItem(title: "開啟「螢幕與系統錄音」設定…", action: #selector(openAudioCaptureSettings)))
+        nowPlayingInfoItem.isEnabled = false
+        nowPlayingInfoItem.isHidden = true
+        menu.addItem(nowPlayingInfoItem)
         menu.addItem(.separator())
-        menu.addItem(makeItem(title: "關於 PulseFloat", action: #selector(showAbout)))
+
+        let more = NSMenu()
+        more.autoenablesItems = false
+        let dockIcon = makeItem(title: "在 Dock 顯示圖示", action: #selector(toggleDockIcon))
+        dockIconItem = dockIcon
+        more.addItem(dockIcon)
+        more.addItem(makeItem(title: "開啟「螢幕與系統錄音」設定…", action: #selector(openAudioCaptureSettings)))
+        more.addItem(.separator())
+        more.addItem(makeItem(title: "關於 PulseFloat", action: #selector(showAbout)))
+        let moreItem = NSMenuItem(title: "更多", action: nil, keyEquivalent: "")
+        moreItem.submenu = more
+        menu.addItem(moreItem)
         let quitItem = NSMenuItem(title: "結束 PulseFloat", action: #selector(quit), keyEquivalent: "q")
         quitItem.keyEquivalentModifierMask = .command
         quitItem.target = self
@@ -271,7 +284,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let header = NSMenuItem(title: "呈現方式", action: nil, keyEquivalent: "")
         header.isEnabled = false
         menu.addItem(header)
-        for (presentation, title) in [(ScenePresentation.compact, "精簡（浮動條）"), (.sculpture, "雕塑（⌥ 拖曳旋轉・捲動縮放・雙擊重設）")] {
+        for (presentation, title) in [(ScenePresentation.compact, "精簡（浮動條）"), (.sculpture, "雕塑（⌥ 拖曳旋轉・捲動縮放）")] {
             let item = makeItem(title: title, action: #selector(selectPresentation(_:)))
             item.representedObject = presentation.rawValue
             item.indentationLevel = 1
@@ -303,7 +316,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
         sceneTimingItem.isEnabled = false
         menu.addItem(sceneTimingItem)
-        let item = NSMenuItem(title: "3D 主題設定", action: nil, keyEquivalent: "")
+        let item = NSMenuItem(title: "3D 設定", action: nil, keyEquivalent: "")
         item.submenu = menu
         return item
     }
@@ -420,10 +433,12 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     /// 選單裡的「透明度」滑桿（30%–100%），拖曳時即時套用；選單在拖曳時保持開啟。
     private func makeOpacityItem() -> NSMenuItem {
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 240, height: 46))
+        // 一列：左邊「透明度 100%」、右邊滑桿。
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 230, height: 26))
         opacityLabel.font = NSFont.menuFont(ofSize: 0)
-        opacityLabel.frame = NSRect(x: 20, y: 24, width: 200, height: 18)
-        opacitySlider.frame = NSRect(x: 18, y: 4, width: 204, height: 20)
+        opacityLabel.frame = NSRect(x: 20, y: 4, width: 92, height: 18)
+        opacitySlider.frame = NSRect(x: 112, y: 3, width: 104, height: 20)
+        opacitySlider.controlSize = .small
         opacitySlider.isContinuous = true
         opacitySlider.target = self
         opacitySlider.action = #selector(opacityChanged(_:))
@@ -436,7 +451,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     private func updateOpacityLabel() {
-        opacityLabel.stringValue = "透明度　\(Int((opacitySlider.doubleValue * 100).rounded()))%"
+        opacityLabel.stringValue = "透明度 \(Int((opacitySlider.doubleValue * 100).rounded()))%"
     }
 
     @objc private func opacityChanged(_ sender: NSSlider) {
