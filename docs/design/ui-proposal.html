@@ -118,6 +118,8 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0}
 .seg.wall{display:flex;gap:4px}.seg.wall button{padding:6px 10px;font-size:12px}.seg.wall button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
 #silenceBtn[aria-pressed=true]{background:#2a3142;border-color:#5b6888}
 .stage.wall-space{background:radial-gradient(1.2px 1.2px at 12% 18%,#cfe8ff 50%,transparent 51%),radial-gradient(1px 1px at 33% 9%,#9fc6ff 50%,transparent 51%),radial-gradient(1.4px 1.4px at 61% 22%,#e6f3ff 50%,transparent 51%),radial-gradient(1px 1px at 78% 12%,#a9d4ff 50%,transparent 51%),radial-gradient(1.2px 1.2px at 22% 64%,#bcdcff 50%,transparent 51%),radial-gradient(1px 1px at 47% 41%,#d9ecff 50%,transparent 51%),radial-gradient(1px 1px at 88% 58%,#cfe8ff 50%,transparent 51%),radial-gradient(1.1px 1.1px at 8% 86%,#9fc6ff 50%,transparent 51%),radial-gradient(circle at 128% 70%,transparent 0 46%,rgba(120,220,255,.85) 46.4%,rgba(60,150,255,.35) 47.6%,transparent 52%),radial-gradient(circle at 128% 70%,#081a36 0 46%,transparent 46.2%),radial-gradient(70% 90% at 100% 60%,rgba(40,120,220,.28),transparent 70%),linear-gradient(160deg,#0a1226 0%,#050915 100%)}
+.stage.wall-lab{background:radial-gradient(70% 90% at 30% 20%,#f4f2ee,transparent 70%),radial-gradient(60% 80% at 85% 85%,#d3cfc7,transparent 70%),linear-gradient(160deg,#ebe8e3 0%,#d9d5ce 100%)}
+.stage.wall-lab .menubar{background:rgba(255,255,255,.5);color:#1a1d24}
 .stage.wall-light{background:radial-gradient(60% 80% at 20% 90%,rgba(255,196,214,.75),transparent 60%),radial-gradient(55% 70% at 85% 20%,rgba(160,206,255,.9),transparent 65%),linear-gradient(160deg,#eef2f8 0%,#d9e2ef 100%)}
 .stage.wall-light .menubar{background:rgba(255,255,255,.55);color:#1a1d24}
 .concepts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
@@ -170,12 +172,12 @@ textarea#jsonOut{width:100%;min-height:140px;font-family:var(--f-mono);font-size
   <header class="top">
     <div class="brand">
       <h1>Pulsefloat</h1>
-      <span>UI 提案 v0.2 · 靈感：太空 HUD（Pinterest 參考圖）· 預設透明視窗</span>
+      <span>UI 提案 v0.4 · 萊茵生命 3D 雕塑、正在播放封面、太空 HUD（Pinterest）· 預設透明視窗</span>
     </div>
     <div class="transport">
       <button class="primary" id="playDemo" type="button">▶ 播放示範曲</button>
       <button type="button" id="silenceBtn" aria-pressed="false">◼︎ 預覽靜音</button>
-      <div class="seg wall" role="group" aria-label="桌布"><button type="button" data-wall="space" aria-pressed="true">太空桌布</button><button type="button" data-wall="light" aria-pressed="false">淺色桌布</button><button type="button" data-wall="proto" aria-pressed="false">原型</button></div>
+      <div class="seg wall" role="group" aria-label="桌布"><button type="button" data-wall="lab" aria-pressed="false">實驗室</button><button type="button" data-wall="space" aria-pressed="true">太空桌布</button><button type="button" data-wall="light" aria-pressed="false">淺色桌布</button><button type="button" data-wall="proto" aria-pressed="false">原型</button></div>
       <label class="btn" for="fileIn">載入音檔<input id="fileIn" type="file" accept="audio/*"></label>
       <div class="vol"><label for="vol">音量</label><input id="vol" type="range" min="0" max="1" step="0.01" value="0.6"></div>
       <span class="chip" id="srcChip">來源 <b>模擬訊號</b></span>
@@ -229,10 +231,10 @@ textarea#jsonOut{width:100%;min-height:140px;font-family:var(--f-mono);font-size
         <span>選單列圖示寬度 ≤ 28pt，太寬會被瀏海吃掉</span>
       </div>
 
-      <div class="section-h"><h2>全部主題</h2><p>原本 4 種 + 新提案 3 種（標 NEW），都吃同一組頻帶資料</p></div>
+      <div class="section-h"><h2>全部主題</h2><p>原本 4 種 + 新提案 4 種（標 NEW）；配色新增 6 組，都吃同一組頻帶資料</p></div>
       <div class="gallery" id="gallery"></div>
-      <div class="section-h"><h2>新方向 · 三個提案</h2><p>都以 Pinterest 參考圖的太空、行星邊緣光暈與 HUD 細節為靈感；沒有聲音時保持靜止</p></div>
-      <div class="concepts" id="concepts"><article class="concept"><h3>軌道 <em>ORBIT</em></h3><p class="pitch">頻譜化成從行星邊緣升起的光柱，大氣層隨低音呼吸，衛星只在有音樂時繞行。</p><p class="detail">視窗下方是一道發光的行星地平線（參考圖右側的地球邊緣），64 個頻段沿著弧線垂直升起，低頻在左；低音讓大氣光暈變厚變亮，行星上有淡淡的經緯網格。沒有聲音時只剩靜止的地平線、刻度與網格。</p><button type="button" data-try="orbit">套用到浮動視窗</button></article><article class="concept"><h3>儀表 <em>HUD</em></h3><p class="pitch">像太空船上的精密儀表：音樂來了，電路一節一節亮起；沒有聲音時只剩靜止的淡淡線框。</p><p class="detail">四角括號框住視窗，延伸出 45° 轉折的電路走線，依頻段能量逐段點亮；頻譜是一條清楚的折線加漸層填色，下方有 60 · 250 · 1k · 4k · 16k 刻度，右上角有低音環與 dB 讀數，左上是字距拉開的 P U L S E F L O A T 標題。</p><button type="button" data-try="hud">套用到浮動視窗</button></article><article class="concept"><h3>星圖 <em>CONSTELLATION</em></h3><p class="pitch">每個頻段都是一顆星，音樂一響就連成星座、隨節拍重組；安靜時只剩一張靜止的淡淡星圖。</p><p class="detail">星星沿著一條由左下升到右上的虛線曲線分布，能量決定大小與亮度；局部峰值的星會互相連線成星座，重低音時最亮的星擴散出一圈光環，並標上 α／β／γ 與頻率；背景飄著極淡的公式（Σ|X[k]|²、20·log₁₀）。</p><button type="button" data-try="constellation">套用到浮動視窗</button></article></div>
+      <div class="section-h"><h2>新方向</h2><p>3D 無限雕塑（萊茵生命風格）、圓環＋封面、三個 Pinterest 太空 HUD 方向；沒有聲音時都保持靜止</p></div>
+      <div class="concepts" id="concepts"><article class="concept"><h3>無限 <em>MÖBIUS 3D</em></h3><p class="pitch">萊茵生命風格的 3D 實驗室雕塑：上百片鰭片組成的 ∞ 緞帶，左右兩圈對稱，片片隨頻段伸展，重低音沿著緞帶送出一道光。</p><p class="detail">用 WebGL 即時算出 3D 緞帶：約 300 片鰭片沿著對稱的 ∞ 路徑半圈扭轉，有主光、補光與柔和的地面陰影，可以放在任何桌布上。左圈低頻、右圈高頻；重低音觸發一道從交叉點出發的脈衝。有聲音時才會左右對稱地輕輕擺動，安靜時完全靜止（連畫面都不重算）。只取用緞帶造型，不使用萊茵生命的 Logo。</p><div class="seg" role="group" aria-label="雕塑材質"><button type="button" data-mstyle="porcelain" aria-pressed="true">瓷白</button><button type="button" data-mstyle="graphite" aria-pressed="false">石墨</button><button type="button" data-mstyle="palette" aria-pressed="false">配色漸層</button></div><button type="button" data-try="mobius" data-wall-hint="lab">套用到浮動視窗</button></article><article class="concept"><h3>圓環放射＋封面 <em>RADIAL · NOW PLAYING</em></h3><p class="pitch">圓環中間放正在播放的專輯封面或 App 圖示，封面跟著低音一起脈動。</p><p class="detail">這頁可以載入本機音檔試試：檔案內嵌的封面會顯示在圓環中央（沒有封面就自動產生一張）。App 版做法：不需額外權限就能用 Core Audio 知道是哪個 App 在出聲並顯示它的圖示；Apple Music／Spotify 的歌名與封面透過 AppleScript 讀取（第一次會詢問「允許控制」）；瀏覽器的 YouTube 則從分頁網址取得影片縮圖。不使用已被 Apple 封鎖的私有 MediaRemote。</p><button type="button" data-try="radial" data-wall-hint="space">套用到浮動視窗</button></article><article class="concept"><h3>軌道 <em>ORBIT</em></h3><p class="pitch">頻譜化成從行星邊緣升起的光柱，大氣層隨低音呼吸，衛星只在有音樂時繞行。</p><p class="detail">視窗下方是一道發光的行星地平線（參考圖右側的地球邊緣），64 個頻段沿著弧線垂直升起，低頻在左；低音讓大氣光暈變厚變亮，行星上有淡淡的經緯網格。沒有聲音時只剩靜止的地平線、刻度與網格。</p><button type="button" data-try="orbit" data-wall-hint="">套用到浮動視窗</button></article><article class="concept"><h3>儀表 <em>HUD</em></h3><p class="pitch">像太空船上的精密儀表：音樂來了，電路一節一節亮起；沒有聲音時只剩靜止的淡淡線框。</p><p class="detail">四角括號框住視窗，延伸出 45° 轉折的電路走線，依頻段能量逐段點亮；頻譜是一條清楚的折線加漸層填色，下方有 60 · 250 · 1k · 4k · 16k 刻度，右上角有低音環與 dB 讀數，左上是字距拉開的 P U L S E F L O A T 標題。</p><button type="button" data-try="hud" data-wall-hint="">套用到浮動視窗</button></article><article class="concept"><h3>星圖 <em>CONSTELLATION</em></h3><p class="pitch">每個頻段都是一顆星，音樂一響就連成星座、隨節拍重組；安靜時只剩一張靜止的淡淡星圖。</p><p class="detail">星星沿著一條由左下升到右上的虛線曲線分布，能量決定大小與亮度；局部峰值的星會互相連線成星座，重低音時最亮的星擴散出一圈光環，並標上 α／β／γ 與頻率；背景飄著極淡的公式（Σ|X[k]|²、20·log₁₀）。</p><button type="button" data-try="constellation" data-wall-hint="">套用到浮動視窗</button></article></div>
       <p class="notes">瀏覽器沒有權限抓系統聲音，所以這裡用內建合成的 128 BPM 示範曲或你自己的音檔來驅動；還沒按播放時跑的是模擬頻譜。App 版改用 Core Audio Process Tap 抓系統輸出，後面的頻帶、平滑、峰值演算法跟這頁一模一樣。</p>
     </div>
 
@@ -242,6 +244,290 @@ textarea#jsonOut{width:100%;min-height:140px;font-family:var(--f-mono);font-size
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+<script>
+/* concept: mobius */
+/* concept: MÖBIUS / 無限 — lab-style slatted figure-eight sculpture in real 3D (three.js r128),
+ * inspired by the Rhine Lab sculpture look (ribbon form only; no logo).
+ * Geometry: Bernoulli lemniscate (symmetric lobes), z = 0.28·sin t so the lobes pass over/under at the crossing,
+ * a half-twist ribbon made of ~300 thin fins (InstancedMesh of boxes), lit by a key/fill/hemisphere rig with a soft
+ * ground shadow (ShadowMaterial) so it sits on any wallpaper.
+ * Audio: band energy lengthens fins (low band → left lobe, high → right lobe); bass onsets launch a pulse from the
+ * crossing that brightens fins; the sculpture only sways (symmetrically around front view) while there is sound.
+ * Silence: no pulses, no sway, fins at rest → a perfectly still sculpture; the frame is not even re-rendered.
+ * Materials (window.PF.mobiusStyle): "porcelain" (default), "graphite", "palette" (follows the active palette).
+ * Fallback: if three.js is unavailable, draws the 2D slat version.
+ *
+ * Swift port notes: SceneKit/RealityKit in a transparent view — one SCNNode per fin or a single geometry with a
+ * per-vertex colour buffer rebuilt per frame (300 boxes = 7 200 vertices), a directional light with soft shadow on a
+ * shadow-only floor (SCNFloor + shadow-only lighting model). Update only when energy/pulses change.
+ */
+(function () {
+  window.PF_EXTRA = window.PF_EXTRA || [];
+  window.PF = window.PF || {};
+  if (!window.PF.mobiusStyle) window.PF.mobiusStyle = "porcelain";
+
+  const TAU = Math.PI * 2;
+  const CREAM = [242, 238, 228];
+  const LIME = [226, 240, 150];
+
+  function lemniscate(t, out) {
+    const s = Math.sin(t), c = Math.cos(t), d = 1 + s * s;
+    out[0] = c / d; out[1] = (s * c) / d; out[2] = 0.28 * s;
+    return out;
+  }
+
+  // Frames for M fins: position, width dir W, fin-height dir N, tangent T; u ∈ [0,1) starts at the crossing.
+  function buildFrames(M) {
+    const f = { M, P: [], W: [], N: [], T: [], u: new Float32Array(M), spacing: 0 };
+    const a = [0, 0, 0], b = [0, 0, 0], p = [0, 0, 0];
+    let length = 0, prev = null;
+    for (let i = 0; i < M; i++) {
+      const u = i / M, t = Math.PI / 2 + u * TAU;
+      lemniscate(t, p); lemniscate(t - 0.002, a); lemniscate(t + 0.002, b);
+      let tx = b[0] - a[0], ty = b[1] - a[1], tz = b[2] - a[2];
+      const tl = Math.hypot(tx, ty, tz) || 1; tx /= tl; ty /= tl; tz /= tl;
+      // base width = tangent × viewDir(0,0,1) (lies in the picture plane), n0 = width × tangent
+      let bx = ty, by = -tx, bz = 0; const bl = Math.hypot(bx, by) || 1; bx /= bl; by /= bl;
+      const nx = by * tz - bz * ty, ny = bz * tx - bx * tz, nz = bx * ty - by * tx;
+      const twist = u * Math.PI + 0.35 * Math.sin(u * TAU * 2);
+      const ct = Math.cos(twist), st = Math.sin(twist);
+      const W = [bx * ct + nx * st, by * ct + ny * st, bz * ct + nz * st];
+      const T = [tx, ty, tz];
+      const N = [T[1] * W[2] - T[2] * W[1], T[2] * W[0] - T[0] * W[2], T[0] * W[1] - T[1] * W[0]];
+      f.P.push([p[0], p[1], p[2]]); f.W.push(W); f.N.push(N); f.T.push(T); f.u[i] = u;
+      if (prev) length += Math.hypot(p[0] - prev[0], p[1] - prev[1], p[2] - prev[2]);
+      prev = [p[0], p[1], p[2]];
+    }
+    f.spacing = length / (M - 1);
+    return f;
+  }
+
+  function bandEnergy(S, u) {
+    const N = S.N | 0;
+    if (N <= 0 || !S.cur) return 0;
+    const x = Math.min(N - 1, Math.max(0, u * N)), i = Math.floor(x), j = Math.min(N - 1, i + 1), fr = x - i;
+    const v = (+S.cur[i] || 0) * (1 - fr) + (+S.cur[j] || 0) * fr;
+    return v < 0.004 ? 0 : Math.min(1, v);
+  }
+
+  // Shared audio-driven animation state per canvas (pulses, sway angle).
+  function stepAnimation(st, S, t) {
+    const dt = Math.min(0.05, Math.max(0, (t - (st.lastT ?? t)) || 0));
+    st.lastT = t;
+    const bass = Math.min(1, Math.max(0, +S.bass || 0));
+    let energy = 0; const N = S.N | 0;
+    for (let i = 0; i < N; i++) energy += Math.min(1, Math.max(0, +S.cur[i] || 0));
+    energy = N > 0 ? energy / N : 0;
+    if (energy < 0.01) energy = 0;
+    st.energy = energy;
+    st.angle = (st.angle || 0) + dt * energy * 0.9;
+    if (energy === 0) st.angle *= Math.exp(-dt * 0.6); // ease back toward the symmetric front view, then stop
+    if (Math.abs(st.angle) < 1e-4) st.angle = 0;
+    st.pulses = st.pulses || [];
+    if (st.armed !== false && bass > 0.55 && bass > (st.prevBass || 0) + 0.02) { st.pulses.push({ u: 0, a: bass }); st.armed = false; }
+    if (bass < 0.35) st.armed = true;
+    st.prevBass = bass;
+    for (const p of st.pulses) { p.u += dt * 0.55; p.a *= Math.exp(-dt * 0.9); }
+    st.pulses = st.pulses.filter(p => p.u < 1.05 && p.a > 0.02);
+  }
+
+  function pulseAt(st, u) {
+    let v = 0;
+    for (const p of st.pulses) { const d = u - p.u; v += p.a * Math.exp(-(d * d) / 0.0012); }
+    return Math.min(1.5, v);
+  }
+
+  // ---------- three.js renderer (one per size class, shared across canvases) ----------
+  const renderers = {};
+  function getRig(key, wPx, hPx) {
+    const THREE = window.THREE;
+    let rig = renderers[key];
+    if (!rig) {
+      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
+      renderer.setPixelRatio(1);
+      renderer.setClearColor(0x000000, 0);
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.05;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(28, wPx / hPx, 0.1, 50);
+      camera.position.set(0, 0.55, 5.2);
+      camera.lookAt(0, -0.05, 0);
+      scene.add(new THREE.HemisphereLight(0xfff8ee, 0x5e5953, 0.62));
+      const keyLight = new THREE.DirectionalLight(0xffffff, 1.05);
+      keyLight.position.set(-2.2, 3.4, 3.6);
+      keyLight.castShadow = true;
+      keyLight.shadow.mapSize.set(1024, 1024);
+      keyLight.shadow.camera.left = -3; keyLight.shadow.camera.right = 3; keyLight.shadow.camera.top = 3; keyLight.shadow.camera.bottom = -3;
+      keyLight.shadow.radius = 4; keyLight.shadow.bias = -0.0008;
+      scene.add(keyLight);
+      const fill = new THREE.DirectionalLight(0xffefe0, 0.38);
+      fill.position.set(3, 0.6, 2.4);
+      scene.add(fill);
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(14, 14), new THREE.ShadowMaterial({ opacity: 0.17 }));
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.y = -1.0;
+      floor.receiveShadow = true;
+      scene.add(floor);
+      const group = new THREE.Group();
+      group.rotation.x = -0.32;
+      scene.add(group);
+      rig = renderers[key] = { renderer, scene, camera, group, mesh: null, M: 0, frames: null, style: "", w: 0, h: 0 };
+    }
+    if (rig.w !== wPx || rig.h !== hPx) {
+      rig.renderer.setSize(wPx, hPx, false);
+      rig.camera.aspect = wPx / hPx;
+      // fit: keep the sculpture at ~78% of the width, but never taller than the frame allows
+      const visibleH = 2 * 5.2 * Math.tan((28 * Math.PI / 180) / 2);
+      const visibleW = visibleH * rig.camera.aspect;
+      rig.group.scale.setScalar(Math.min(0.78 * visibleW / 2, 0.78 * visibleH / 0.95));
+      rig.camera.updateProjectionMatrix();
+      rig.w = wPx; rig.h = hPx;
+    }
+    return rig;
+  }
+
+  function ensureMesh(rig, M, styleName) {
+    const THREE = window.THREE;
+    if (rig.mesh && rig.M === M && rig.style === styleName) return;
+    if (rig.mesh) { rig.group.remove(rig.mesh); rig.mesh.geometry.dispose(); rig.mesh.material.dispose(); }
+    const graphite = styleName === "graphite";
+    const material = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: graphite ? 0.38 : 0.58,
+      metalness: graphite ? 0.35 : 0.04,
+    });
+    const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), material, M);
+    mesh.castShadow = true;
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    rig.group.add(mesh);
+    rig.mesh = mesh; rig.M = M; rig.style = styleName;
+    rig.frames = buildFrames(M);
+    rig.dirty = true;
+  }
+
+  const tmp = {};
+  function baseColor(styleName, u) {
+    if (styleName === "graphite") return [44, 44, 48];
+    if (styleName === "palette" && window.PF.palAt) {
+      const c = window.PF.palAt(u);
+      return [c[0] * 0.75 + CREAM[0] * 0.25, c[1] * 0.75 + CREAM[1] * 0.25, c[2] * 0.75 + CREAM[2] * 0.25];
+    }
+    return CREAM;
+  }
+
+  function draw3D(ctx, w, h, o) {
+    const THREE = window.THREE;
+    const PF = window.PF, S = PF.S, st = o.state;
+    const small = !!o.small;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const wPx = Math.max(2, Math.round(w * dpr)), hPx = Math.max(2, Math.round(h * dpr));
+    const rig = getRig(small ? "thumb" : "main", wPx, hPx);
+    const styleName = PF.mobiusStyle || "porcelain";
+    const M = small ? 140 : 300;
+    ensureMesh(rig, M, styleName);
+    stepAnimation(st, S, o.t);
+
+    // Signature of everything that changes the image; skip rendering when nothing changed (silence = still).
+    const sig = `${wPx}x${hPx}|${styleName}|${M}|${st.angle.toFixed(4)}|${st.energy.toFixed(3)}|${st.pulses.length}|${PF.paletteKey || ""}`;
+    const moving = st.energy > 0 || st.pulses.length > 0;
+    if (moving || rig.dirty || st.sig !== sig || rig.lastOwner !== st) {
+      const f = rig.frames, m = new THREE.Matrix4(), col = new THREE.Color();
+      const finDepth = f.spacing * 0.38;
+      const vW = new THREE.Vector3(), vN = new THREE.Vector3(), vT = new THREE.Vector3();
+      for (let i = 0; i < M; i++) {
+        const u = f.u[i], e = bandEnergy(S, u), pu = pulseAt(st, u);
+        const half = 0.085 * (1 + 1.5 * e + 0.55 * pu);
+        const finH = 0.05 * (1 + 0.7 * e + 0.4 * pu);
+        vW.fromArray(f.W[i]); vN.fromArray(f.N[i]); vT.fromArray(f.T[i]);
+        m.makeBasis(vW, vN, vT);
+        m.scale(new THREE.Vector3(half * 2, finH, finDepth));
+        m.setPosition(f.P[i][0], f.P[i][1], f.P[i][2]);
+        rig.mesh.setMatrixAt(i, m);
+        const base = baseColor(styleName, u);
+        const g = Math.min(1, pu * 0.9 + e * (styleName === "graphite" ? 0.25 : 0.1));
+        col.setRGB(
+          (base[0] * (1 - g) + LIME[0] * g) / 255,
+          (base[1] * (1 - g) + LIME[1] * g) / 255,
+          (base[2] * (1 - g) + LIME[2] * g) / 255
+        ).convertSRGBToLinear();
+        rig.mesh.setColorAt(i, col);
+      }
+      rig.mesh.instanceMatrix.needsUpdate = true;
+      if (rig.mesh.instanceColor) rig.mesh.instanceColor.needsUpdate = true;
+      rig.group.rotation.y = 0.28 * Math.sin(st.angle);
+      rig.renderer.render(rig.scene, rig.camera);
+      rig.dirty = false; rig.lastOwner = st; st.sig = sig;
+    }
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(rig.renderer.domElement, 0, 0, w, h);
+    if (!small && h >= 120) drawLabels(ctx, w, h, st.energy);
+  }
+
+  function drawLabels(ctx, w, h, energy) {
+    ctx.save();
+    ctx.font = '500 9px ui-monospace, "SF Mono", Menlo, monospace';
+    const label = (text, x, y, align) => {
+      ctx.textAlign = align;
+      ctx.lineWidth = 2.5; ctx.strokeStyle = "rgba(20,18,16,0.35)"; ctx.strokeText(text, x, y);
+      ctx.fillStyle = "rgba(242,238,228,0.8)"; ctx.fillText(text, x, y);
+    };
+    label("SPECIMEN ∞ — ANALYSIS", 14, 18, "left");
+    const level = energy > 0 ? (20 * Math.log10(Math.max(1e-4, energy))).toFixed(1) + " dB" : "—∞ dB";
+    label(`LVL ${level}`, w - 14, 18, "right");
+    label("LOW ◂", 14, h - 12, "left");
+    label("▸ HIGH", w - 14, h - 12, "right");
+    ctx.restore();
+  }
+
+  // ---------- 2D fallback (symmetric front view) ----------
+  function draw2D(ctx, w, h, o) {
+    const S = window.PF.S, st = o.state, small = !!o.small;
+    const M = small ? 110 : 280;
+    if (!st.frames2d || st.frames2d.M !== M) st.frames2d = buildFrames(M);
+    stepAnimation(st, S, o.t);
+    const f = st.frames2d;
+    const yaw = 0.28 * Math.sin(st.angle), pitch = 0.42;
+    const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+    const rot = (v) => { const x1 = v[0] * cy + v[2] * sy, z1 = -v[0] * sy + v[2] * cy; return [x1, v[1] * cp - z1 * sp, v[1] * sp + z1 * cp]; };
+    const scale = Math.min(w * 0.4, h * 1.02), cx0 = w / 2, cy0 = h / 2;
+    const items = [];
+    for (let i = 0; i < M; i++) {
+      const u = f.u[i], e = bandEnergy(S, u), pu = pulseAt(st, u);
+      const P = rot(f.P[i]), W = rot(f.W[i]), N = rot(f.N[i]);
+      const half = 0.085 * (1 + 1.5 * e + 0.55 * pu);
+      const shade = 0.58 + 0.42 * Math.abs(N[0] * -0.45 + N[1] * -0.65 + N[2] * 0.62);
+      items.push({ z: P[2], ax: cx0 + (P[0] + W[0] * half) * scale, ay: cy0 - (P[1] + W[1] * half) * scale,
+        bx: cx0 + (P[0] - W[0] * half) * scale, by: cy0 - (P[1] - W[1] * half) * scale, shade, g: Math.min(1, pu) });
+    }
+    items.sort((a, b) => a.z - b.z);
+    ctx.clearRect(0, 0, w, h);
+    const lw = Math.max(0.8, (scale * TAU * 0.62) / M * 0.72);
+    for (const it of items) {
+      ctx.strokeStyle = `rgba(46,42,38,${0.2 + 0.25 * (1 - it.shade)})`; ctx.lineWidth = lw + 0.7;
+      ctx.beginPath(); ctx.moveTo(it.ax, it.ay); ctx.lineTo(it.bx, it.by); ctx.stroke();
+      const r = CREAM[0] * it.shade * (1 - it.g) + LIME[0] * it.g, g = CREAM[1] * it.shade * (1 - it.g) + LIME[1] * it.g, b = CREAM[2] * it.shade * (1 - it.g) + LIME[2] * it.g;
+      ctx.strokeStyle = `rgb(${r | 0},${g | 0},${b | 0})`; ctx.lineWidth = lw;
+      ctx.beginPath(); ctx.moveTo(it.ax, it.ay); ctx.lineTo(it.bx, it.by); ctx.stroke();
+    }
+    if (!small && h >= 120) drawLabels(ctx, w, h, st.energy);
+  }
+
+  function draw(ctx, w, h, o) {
+    if (window.THREE && !window.PF.mobiusNo3D) {
+      try { draw3D(ctx, w, h, o); return; } catch (e) { window.PF.mobiusNo3D = true; console.warn("MÖBIUS 3D unavailable, using 2D", e); }
+    }
+    draw2D(ctx, w, h, o);
+  }
+
+  window.PF_EXTRA.push({ id: "mobius", name: "無限", en: "MÖBIUS 3D", draw });
+})();
+
+</script>
 <script>
 /* concept: orbit */
 /* PulseFloat concept theme — ORBIT / 軌道
@@ -1436,14 +1722,20 @@ const DEFAULTS = {
   bands:  { count: 64, fMinHz: 30, fMaxHz: 16000, tiltDbPerOct: 3.0 },
   level:  { agc: true, rangeDb: 54, ceilingDb: -12, agcReleaseDbPerSec: 6, gamma: 1.3, gateDb: -90 },
   motion: { attackMs: 12, releaseMs: 140, spatial: 0.35, peakHoldMs: 160, peakGravity: 3.2 },
-  look:   { theme: "orbit", palette: "aurora", mirror: false, reflection: true, barGap: 0.28, windowMode: "bare", opacity: 1.0 },
+  look:   { theme: "mobius", palette: "aurora", mirror: false, reflection: true, barGap: 0.28, windowMode: "bare", opacity: 1.0 },
   menubar:{ style: "bars", count: 7, colored: false }
 };
 const PALETTES = {
   aurora:  { name: "Aurora",  stops: ["#21e6c1", "#3a9bff", "#a35cff"] },
   ember:   { name: "Ember",   stops: ["#ffd23f", "#ff6b35", "#ff2d87"] },
   glacier: { name: "Glacier", stops: ["#eaf7ff", "#8fd3ff", "#4c6fff"] },
-  mono:    { name: "Mono",    stops: ["#ffffff", "#d5dae5", "#98a1b4"] }
+  mono:    { name: "Mono",    stops: ["#ffffff", "#d5dae5", "#98a1b4"] },
+  lab:     { name: "Lab",     stops: ["#f2eee4", "#c9c3b6", "#e2f096"] },
+  sakura:  { name: "Sakura",  stops: ["#ffe0e9", "#ff8fab", "#c77dff"] },
+  sunset:  { name: "Sunset",  stops: ["#ffb703", "#fb5607", "#8338ec"] },
+  matcha:  { name: "Matcha",  stops: ["#e9f5db", "#95d5b2", "#2d6a4f"] },
+  neotokyo:{ name: "Neo Tokyo", stops: ["#00f5d4", "#f15bb5", "#9b5de5"] },
+  graphite:{ name: "Graphite", stops: ["#f5f5f5", "#9e9e9e", "#3a3a3a"] }
 };
 const THEMES = [
   { id: "bars",   name: "經典直條", en: "NCS BARS" },
@@ -1626,7 +1918,10 @@ function drawRadial(ctx,w,h,o){
   ctx.beginPath(); ctx.arc(cx,cy,rc,0,Math.PI*2); ctx.fill();
   const rg=ctx.createLinearGradient(cx-r0,cy-r0,cx+r0,cy+r0); rg.addColorStop(0,rgba(c0,1)); rg.addColorStop(1,rgba(c2,1));
   ctx.strokeStyle=rg; ctx.lineWidth=o.small?1.2:2; ctx.beginPath(); ctx.arc(cx,cy,rc,0,Math.PI*2); ctx.stroke();
-  ctx.globalAlpha=0.25+0.5*S.bass; ctx.lineWidth=o.small?0.8:1; ctx.beginPath(); ctx.arc(cx,cy,rc*0.72,0,Math.PI*2); ctx.stroke(); ctx.globalAlpha=1;
+  const art = window.PF && window.PF.art;
+  if (art) { const ar = rc*0.9; ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,ar,0,Math.PI*2); ctx.clip(); ctx.drawImage(art, cx-ar, cy-ar, ar*2, ar*2); ctx.restore();
+    ctx.globalAlpha=0.35+0.4*S.bass; ctx.lineWidth=o.small?0.8:1.2; ctx.beginPath(); ctx.arc(cx,cy,ar,0,Math.PI*2); ctx.stroke(); ctx.globalAlpha=1; }
+  else { ctx.globalAlpha=0.25+0.5*S.bass; ctx.lineWidth=o.small?0.8:1; ctx.beginPath(); ctx.arc(cx,cy,rc*0.72,0,Math.PI*2); ctx.stroke(); ctx.globalAlpha=1; }
 }
 
 function drawNeon(ctx,w,h,o){
@@ -1756,7 +2051,7 @@ function startDemo(){
   AC.resume(); nextT=AC.currentTime+0.06; step=0;
   clearInterval(sched);
   sched=setInterval(()=>{ while (nextT < AC.currentTime+0.12){ schedStep(step,nextT); nextT+=SPB/4; step++; } }, 25);
-  mode="demo"; playing=true; setChip("示範曲 · 128 BPM"); setPlayBtn();
+  mode="demo"; playing=true; setChip("示範曲 · 128 BPM"); setPlayBtn(); window.PF.art = makeCover("DEMO", "128 BPM · SYNTH");
 }
 function stopDemo(){ clearInterval(sched); sched=null; }
 function stopFile(){ if (fileSrc){ try{fileSrc.stop();}catch(e){} fileSrc.disconnect(); fileSrc=null; } }
@@ -1766,7 +2061,7 @@ async function playFile(file){
   try{
     const buf = await AC.decodeAudioData(await file.arrayBuffer());
     fileSrc = AC.createBufferSource(); fileSrc.buffer=buf; fileSrc.loop=true; fileSrc.connect(comp); fileSrc.start();
-    mode="file"; playing=true; setChip(file.name.length>28? file.name.slice(0,26)+"…" : file.name); setPlayBtn();
+    mode="file"; playing=true; setArtFromFile(file); setChip(file.name.length>28? file.name.slice(0,26)+"…" : file.name); setPlayBtn();
   }catch(e){ mode="sim"; playing=false; setChip("無法解碼這個檔案，換 mp3 / wav / m4a 試試"); setPlayBtn(); }
 }
 function togglePlay(){
@@ -1954,16 +2249,27 @@ rackSync(); syncWindow(); syncTheme();
 // ======================================================================
 const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 let last=performance.now(), simT=0, simFrames=0, fpsAcc=0, fpsN=0, fpsT=0;
+function makeCover(title, sub){ const c=document.createElement("canvas"); c.width=c.height=256; const x=c.getContext("2d");
+  const g=x.createLinearGradient(0,0,256,256); g.addColorStop(0,rgba(palAt(0),1)); g.addColorStop(0.55,rgba(palAt(0.5),1)); g.addColorStop(1,rgba(palAt(1),1)); x.fillStyle=g; x.fillRect(0,0,256,256);
+  x.fillStyle="rgba(10,12,18,.35)"; x.fillRect(0,170,256,86); x.fillStyle="#fff"; x.textAlign="center"; x.font="700 64px Unbounded, system-ui, sans-serif"; x.fillText(title.slice(0,4).toUpperCase(),128,130);
+  x.font="500 22px IBM Plex Mono, monospace"; x.fillText(sub.slice(0,18),128,222); return c; }
+function setArtFromFile(file){ const fallback=()=>{ window.PF.art = makeCover(file.name.replace(/\.[^.]+$/,""), "LOCAL FILE"); };
+  if (!window.jsmediatags) return fallback();
+  try { window.jsmediatags.read(file, { onSuccess(tag){ const pic=tag && tag.tags && tag.tags.picture; if (!pic) return fallback();
+      const blob=new Blob([new Uint8Array(pic.data)], {type: pic.format || "image/jpeg"}); const img=new Image(); img.onload=()=>{ window.PF.art=img; }; img.onerror=fallback; img.src=URL.createObjectURL(blob); }, onError: fallback }); }
+  catch (e) { fallback(); } }
+document.querySelectorAll("[data-mstyle]").forEach(b => b.addEventListener("click", () => { window.PF.mobiusStyle = b.dataset.mstyle; document.querySelectorAll("[data-mstyle]").forEach(x => x.setAttribute("aria-pressed", String(x === b))); }));
 let forceSilence = false;
 const silenceBtn = document.getElementById("silenceBtn");
 silenceBtn.addEventListener("click", () => { forceSilence = !forceSilence; silenceBtn.setAttribute("aria-pressed", String(forceSilence)); silenceBtn.textContent = forceSilence ? "▶︎ 恢復訊號" : "◼︎ 預覽靜音"; });
 const wallButtons = [...document.querySelectorAll(".seg.wall button")];
-function setWall(w){ stage.classList.remove("wall-space","wall-light"); if (w !== "proto") stage.classList.add("wall-" + w); wallButtons.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.wall === w))); try { localStorage.setItem("pulsefloat.ui-proposal.wall", w); } catch (e) {} }
+function setWall(w){ stage.classList.remove("wall-space","wall-light","wall-lab"); if (w !== "proto") stage.classList.add("wall-" + w); wallButtons.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.wall === w))); try { localStorage.setItem("pulsefloat.ui-proposal.wall", w); } catch (e) {} }
 wallButtons.forEach(b => b.addEventListener("click", () => setWall(b.dataset.wall)));
-let savedWall = "space"; try { savedWall = localStorage.getItem("pulsefloat.ui-proposal.wall") || "space"; } catch (e) {}
+let savedWall = "lab"; try { savedWall = localStorage.getItem("pulsefloat.ui-proposal.wall") || "lab"; } catch (e) {}
 setWall(savedWall);
-document.querySelectorAll("[data-try]").forEach(b => b.addEventListener("click", () => { if (RENDER[b.dataset.try]) { setTheme(b.dataset.try); stage.scrollIntoView({ behavior: "smooth", block: "center" }); } }));
+document.querySelectorAll("[data-try]").forEach(b => b.addEventListener("click", () => { if (RENDER[b.dataset.try]) { setTheme(b.dataset.try); if (b.dataset.wallHint) setWall(b.dataset.wallHint); stage.scrollIntoView({ behavior: "smooth", block: "center" }); } }));
 function frame(now){
+  window.PF.paletteKey = P.look.palette;
   const dt=Math.min(0.05,Math.max(0,(now-last)/1000)); last=now;
   const live = playing && AC && AC.state==="running";
   // reduced motion: settle the simulated spectrum into one still frame until the viewer presses play
