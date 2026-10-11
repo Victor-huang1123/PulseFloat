@@ -8,9 +8,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var floatingPanelController: FloatingPanelController?
     private var frameClock: FrameClock?
     private var audioTap: SystemAudioTap?
+    private var nowPlayingMonitor: NowPlayingMonitor?
 
     /// UserDefaults key：是否在 Dock 顯示圖示（預設顯示；可從選單列關閉，變成純選單列 App）。
     private static let dockIconKey = "showDockIcon"
+    /// UserDefaults key：圓環放射中央是否顯示正在播放的封面（預設開啟）。
+    private static let nowPlayingArtworkKey = "pulsefloat.nowPlayingArtwork"
 
     static func main() {
         let app = NSApplication.shared
@@ -20,7 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        UserDefaults.standard.register(defaults: [Self.dockIconKey: true])
+        UserDefaults.standard.register(defaults: [Self.dockIconKey: true, Self.nowPlayingArtworkKey: true])
         NSApp.mainMenu = makeMainMenu()
         applyDockIconPreference()
         // 先讀使用者上次的設定；沒有的話用 App 預設（透明視窗）。VisualizerConfig.default 維持原型參數。
@@ -32,13 +35,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let source = LiveSpectrumSource(config: floatingPanel.config, ring: ring)
         let tap = SystemAudioTap(ring: ring)
         tap.onFormatChange = { [weak source] sampleRate in source?.setSampleRate(sampleRate) }
+        // 正在播放的封面：只在功能開啟、浮動視窗可見且主題是圓環放射時偵測。
+        let visualizer = floatingPanel.visualizerView
+        let nowPlaying = NowPlayingMonitor()
+        nowPlaying.onArtworkChange = { [weak visualizer] artwork in visualizer?.artwork = artwork }
+        visualizer.onRadialVisibilityChange = { [weak self] _ in self?.updateNowPlayingActivity() }
         let statusItem = StatusItemController(
             panelController: floatingPanel,
             audioStatus: { [weak source, weak tap] in
                 Self.audioStatusTitle(mode: source?.mode, tapState: tap?.state)
             },
             isDockIconVisible: { UserDefaults.standard.bool(forKey: Self.dockIconKey) },
-            setDockIconVisible: { [weak self] visible in self?.setDockIconVisible(visible) }
+            setDockIconVisible: { [weak self] visible in self?.setDockIconVisible(visible) },
+            isNowPlayingArtworkEnabled: { UserDefaults.standard.bool(forKey: Self.nowPlayingArtworkKey) },
+            setNowPlayingArtworkEnabled: { [weak self] enabled in self?.setNowPlayingArtworkEnabled(enabled) },
+            nowPlayingSummary: { [weak nowPlaying] in nowPlaying?.summary }
         )
         let clock = FrameClock(
             source: source,
@@ -49,9 +60,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItemController = statusItem
         frameClock = clock
         audioTap = tap
+        nowPlayingMonitor = nowPlaying
         floatingPanel.show()
         clock.start()
         tap.start()
+        updateNowPlayingActivity()
     }
 
     /// 點 Dock 圖示、或在 Finder／Launchpad 再次打開時，把浮動視窗叫回來。
@@ -63,6 +76,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         frameClock?.stop()
         audioTap?.stop()
+        nowPlayingMonitor?.setActive(false)
+    }
+
+    private func setNowPlayingArtworkEnabled(_ enabled: Bool) {
+        UserDefaults.standard.set(enabled, forKey: Self.nowPlayingArtworkKey)
+        updateNowPlayingActivity()
+    }
+
+    /// 功能開關、視窗顯示或主題改變時重新判斷是否要偵測正在播放的內容；關閉時不送任何 Apple event。
+    private func updateNowPlayingActivity() {
+        guard let monitor = nowPlayingMonitor, let panel = floatingPanelController else { return }
+        let enabled = UserDefaults.standard.bool(forKey: Self.nowPlayingArtworkKey)
+        monitor.setActive(enabled && panel.visualizerView.isShowingRadial)
     }
 
     private func setDockIconVisible(_ visible: Bool) {
