@@ -1,0 +1,769 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Pulsefloat Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: one working bench — a mock macOS desktop (stage) on the left, a tuning rack on the right; theme gallery under the stage. Single deliberate dark look (studio gear, amber VU backlight). */
+:root{
+  color-scheme: dark;
+  --bg:#0e1015;
+  --surface:#151821;
+  --surface-2:#1b1f2a;
+  --line:#272c3a;
+  --fg:#e6e8ee;
+  --muted:#8a91a3;
+  --accent:#ffb547;          /* amber VU backlight: UI chrome only, never the visualizer */
+  --accent-ink:#1a1206;
+  --danger:#ff6b5b;
+  --f-display:"Unbounded","Noto Sans TC",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans","Noto Sans TC","PingFang TC",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --r-s:6px; --r-m:10px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--f-body);font-size:14px;line-height:1.5;padding-inline:16px;padding-block:20px 40px}
+.wrap{max-width:1320px;margin-inline:auto;display:flex;flex-direction:column;gap:18px}
+header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px}
+.brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.brand h1{font-family:var(--f-display);font-weight:700;font-size:22px;letter-spacing:.01em;margin:0}
+.brand span{color:var(--muted);font-size:13px}
+.transport{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+button,.btn{font:inherit;font-size:13px;color:var(--fg);background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-s);padding:7px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;line-height:1.2}
+button:hover,.btn:hover{border-color:#3a4256}
+button:focus-visible,.btn:focus-within,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.chip{font-family:var(--f-mono);font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:4px 10px;white-space:nowrap}
+.chip b{color:var(--accent);font-weight:500}
+.vol{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px}
+.vol input{width:90px}
+input[type=file]{position:absolute;width:1px;height:1px;opacity:0}
+
+.bench{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
+@media (max-width:980px){.bench{grid-template-columns:minmax(0,1fr)}}
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+
+/* ---------- mock desktop ---------- */
+.stage{position:relative;width:100%;aspect-ratio:16/10;max-width:100%;border-radius:var(--r-m);overflow:hidden;border:1px solid var(--line);
+  background:
+    radial-gradient(60% 70% at 18% 85%, #3b2a52 0%, transparent 60%),
+    radial-gradient(55% 60% at 85% 30%, #12404a 0%, transparent 65%),
+    radial-gradient(40% 40% at 55% 70%, #4a2a22 0%, transparent 70%),
+    linear-gradient(160deg,#141826 0%,#0b0d14 100%);
+  touch-action:none;user-select:none}
+.menubar{position:absolute;inset:0 0 auto 0;height:26px;display:flex;align-items:center;justify-content:space-between;padding-inline:12px;
+  background:rgba(20,22,30,.55);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);font-size:12.5px;color:#eef0f5;z-index:5}
+.menubar .left{display:flex;gap:16px;align-items:center;white-space:nowrap;overflow:hidden}
+.menubar .left b{font-weight:600}
+.menubar .right{display:flex;gap:12px;align-items:center;white-space:nowrap}
+.notch{position:absolute;left:50%;top:0;transform:translateX(-50%);width:15%;min-width:80px;height:26px;background:#000;border-radius:0 0 10px 10px;z-index:6}
+.status-item{height:22px;padding-inline:5px;border-radius:5px;display:flex;align-items:center;cursor:pointer;border:0;background:transparent}
+.status-item:hover,.status-item.open{background:rgba(255,255,255,.16)}
+.status-item canvas{width:30px;height:16px;display:block}
+.clock{font-variant-numeric:tabular-nums;opacity:.92}
+@media (max-width:620px){.menubar .left span:nth-child(n+3){display:none}.clock{display:none}}
+
+/* floating window */
+.float{position:absolute;left:8%;top:40%;width:56%;aspect-ratio:2.6/1;min-width:180px;min-height:70px;border-radius:14px;z-index:3;cursor:grab}
+.float.dragging{cursor:grabbing}
+.float.card{background:rgba(14,16,24,.42);backdrop-filter:blur(26px) saturate(1.5);-webkit-backdrop-filter:blur(26px) saturate(1.5);
+  box-shadow:0 0 0 .5px rgba(255,255,255,.18) inset,0 18px 50px rgba(0,0,0,.45)}
+.float.bare{background:transparent}
+.float.bare:hover{box-shadow:0 0 0 1px rgba(255,255,255,.22) inset}
+.float canvas{position:absolute;inset:0;width:100%;height:100%;border-radius:inherit}
+.float .hud{position:absolute;top:8px;right:8px;display:flex;gap:4px;opacity:0;transition:opacity .18s}
+.float:hover .hud,.float:focus-within .hud{opacity:1}
+.hud button{width:24px;height:24px;padding:0;justify-content:center;border-radius:6px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.14);font-size:12px;color:#fff}
+.hud button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.float .grip{position:absolute;right:2px;bottom:2px;width:16px;height:16px;cursor:nwse-resize;opacity:0;transition:opacity .18s}
+.float:hover .grip{opacity:.7}
+.float .grip::before{content:"";position:absolute;right:4px;bottom:4px;width:8px;height:8px;border-right:2px solid #fff;border-bottom:2px solid #fff;border-radius:0 0 3px 0}
+.float.locked{cursor:default}
+.float.locked .grip{display:none}
+
+/* status popover — this is the real app's menu-bar popover spec */
+.popover{position:absolute;top:30px;width:268px;max-width:calc(100% - 16px);z-index:8;border-radius:12px;padding:10px;
+  background:rgba(30,32,42,.78);backdrop-filter:blur(30px) saturate(1.6);-webkit-backdrop-filter:blur(30px) saturate(1.6);
+  box-shadow:0 0 0 .5px rgba(255,255,255,.2) inset,0 16px 40px rgba(0,0,0,.5);color:#eef0f5;font-size:13px;display:flex;flex-direction:column;gap:8px}
+.popover .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.popover h4{margin:0;font-family:var(--f-display);font-weight:500;font-size:12px;letter-spacing:.04em}
+.popover .sep{height:1px;background:rgba(255,255,255,.12);margin-block:2px}
+.popover .lbl{font-size:11px;color:#aab1c2;letter-spacing:.06em;text-transform:uppercase}
+.popover .menuitem{padding:4px 6px;border-radius:5px;cursor:default}
+.popover .menuitem:hover{background:rgba(255,255,255,.1)}
+.popover .src{display:flex;flex-direction:column;gap:2px}
+.popover .src label{display:flex;gap:8px;align-items:center;padding:3px 6px;border-radius:5px}
+.popover .src label:hover{background:rgba(255,255,255,.08)}
+.themes-mini{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.themes-mini button{padding:0;height:34px;border-radius:7px;overflow:hidden;background:#0c0e14;border:1px solid rgba(255,255,255,.14);position:relative}
+.themes-mini button[aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.themes-mini canvas{width:100%;height:100%;display:block}
+.switch{position:relative;width:30px;height:18px;flex:none}
+.switch input{appearance:none;-webkit-appearance:none;margin:0;width:30px;height:18px;border-radius:9px;background:rgba(255,255,255,.2);cursor:pointer;transition:background .15s}
+.switch input:checked{background:var(--accent)}
+.switch input::after{content:"";position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s}
+.switch input:checked::after{transform:translateX(12px)}
+
+.caption{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--muted);font-size:12px}
+.caption span::before{content:"▸ ";color:var(--accent)}
+
+/* gallery */
+.section-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.section-h h2{font-family:var(--f-display);font-weight:500;font-size:14px;letter-spacing:.03em;margin:0}
+.section-h p{margin:0;color:var(--muted);font-size:12px}
+.gallery{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.gallery{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{display:flex;flex-direction:column;gap:6px;width:100%;min-width:0;padding:0;background:transparent;border:0;text-align:left;cursor:pointer;color:var(--fg)}
+.tile .screen{position:relative;display:block;width:100%;aspect-ratio:16/9;max-width:100%;border-radius:var(--r-s);overflow:hidden;background:#090b10;border:1px solid var(--line)}
+.tile[aria-pressed=true] .screen{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.tile canvas{position:absolute;inset:0;width:100%;height:100%}
+.tile .name{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:500}
+.tile .name em{font-style:normal;color:var(--muted);font-family:var(--f-mono);font-size:11px;font-weight:400}
+
+/* rack */
+.rack{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-m);display:flex;flex-direction:column}
+.rack details{border-top:1px solid var(--line)}
+.rack details:first-of-type{border-top:0}
+.rack summary{list-style:none;cursor:pointer;padding:11px 14px;display:flex;justify-content:space-between;align-items:center;font-family:var(--f-display);font-size:12px;font-weight:500;letter-spacing:.05em}
+.rack summary::-webkit-details-marker{display:none}
+.rack summary::after{content:"+";color:var(--muted);font-family:var(--f-mono)}
+.rack details[open] summary::after{content:"–"}
+.rack .group{padding:0 14px 14px;display:flex;flex-direction:column;gap:12px}
+.param{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center}
+.param label{font-size:13px}
+.param output{font-family:var(--f-mono);font-size:12px;color:var(--accent);font-variant-numeric:tabular-nums;text-align:right}
+.param input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--accent)}
+.param small{grid-column:1/-1;color:var(--muted);font-size:11.5px;line-height:1.4}
+.seg{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px}
+.seg button{padding:5px 9px;font-size:12px}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.swatches{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.swatches button{height:30px;padding:0;border-radius:6px;position:relative;overflow:hidden}
+.swatches button[aria-pressed=true]{box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--accent)}
+.swatches button span{position:absolute;left:6px;bottom:3px;font-size:10px;font-family:var(--f-mono);color:#000;mix-blend-mode:normal;background:rgba(255,255,255,.7);padding:0 4px;border-radius:3px}
+.rack .foot{border-top:1px solid var(--line);padding:12px 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.readout{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);display:grid;grid-template-columns:repeat(3,auto);gap:2px 14px;padding:10px 14px;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.readout b{color:var(--fg);font-weight:500}
+textarea#jsonOut{width:100%;min-height:140px;font-family:var(--f-mono);font-size:11px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:8px}
+.toast{color:var(--accent);font-size:12px}
+.notes{color:var(--muted);font-size:12.5px;max-width:72ch;margin:0}
+@media (prefers-reduced-motion: reduce){.float .hud,.float .grip{transition:none}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Pulsefloat</h1>
+      <span>設計原型 v0.1 · 視覺與手感基準，Swift 版照這份參數實作</span>
+    </div>
+    <div class="transport">
+      <button class="primary" id="playDemo" type="button">▶ 播放示範曲</button>
+      <label class="btn" for="fileIn">載入音檔<input id="fileIn" type="file" accept="audio/*"></label>
+      <div class="vol"><label for="vol">音量</label><input id="vol" type="range" min="0" max="1" step="0.01" value="0.6"></div>
+      <span class="chip" id="srcChip">來源 <b>模擬訊號</b></span>
+    </div>
+  </header>
+
+  <div class="bench">
+    <div class="col">
+      <div class="stage" id="stage">
+        <div class="menubar">
+          <div class="left"><b>Pulsefloat</b><span>檔案</span><span>編輯</span><span>顯示</span><span>視窗</span><span>說明</span></div>
+          <div class="right">
+            <button class="status-item" id="statusItem" type="button" aria-label="Pulsefloat 選單列圖示" aria-expanded="false"><canvas id="cvMenu"></canvas></button>
+            <span class="clock" id="clock"></span>
+          </div>
+        </div>
+        <div class="notch" aria-hidden="true"></div>
+
+        <div class="float card" id="float" tabindex="0" aria-label="浮動視覺化視窗">
+          <canvas id="cvMain"></canvas>
+          <div class="hud">
+            <button type="button" id="hudTheme" title="切換主題" aria-label="切換主題">◐</button>
+            <button type="button" id="hudLock" title="鎖定並讓滑鼠穿透" aria-label="鎖定位置" aria-pressed="false">⌖</button>
+            <button type="button" id="hudHide" title="隱藏視窗（選單列可再開啟）" aria-label="隱藏視窗">✕</button>
+          </div>
+          <div class="grip" id="grip" aria-hidden="true"></div>
+        </div>
+
+        <div class="popover" id="popover" hidden>
+          <div class="row"><h4>PULSEFLOAT</h4><div class="switch"><input type="checkbox" id="popShow" checked aria-label="顯示浮動視窗"></div></div>
+          <div class="sep"></div>
+          <div class="lbl">音訊來源</div>
+          <div class="src">
+            <label><input type="radio" name="src" checked> 全部系統音訊</label>
+            <label><input type="radio" name="src"> 只擷取特定 App…</label>
+          </div>
+          <div class="sep"></div>
+          <div class="lbl">主題</div>
+          <div class="themes-mini" id="popThemes"></div>
+          <div class="row"><span>透明度</span><input type="range" id="popOpacity" min="0.3" max="1" step="0.05" value="1" style="width:120px;accent-color:var(--accent)" aria-label="透明度"></div>
+          <div class="row"><span>鎖定並點擊穿透</span><div class="switch"><input type="checkbox" id="popLock" aria-label="鎖定並點擊穿透"></div></div>
+          <div class="row"><span>登入時啟動</span><div class="switch"><input type="checkbox" checked aria-label="登入時啟動"></div></div>
+          <div class="sep"></div>
+          <div class="menuitem">設定…　⌘,</div>
+          <div class="menuitem">結束 Pulsefloat　⌘Q</div>
+        </div>
+      </div>
+      <div class="caption">
+        <span>拖曳視窗移動，右下角縮放；滑過出現控制鈕</span>
+        <span>點選單列圖示開啟快速面板</span>
+        <span>選單列圖示寬度 ≤ 28pt，太寬會被瀏海吃掉</span>
+      </div>
+
+      <div class="section-h"><h2>主題</h2><p>四種主題都吃同一組頻帶資料，只差在繪圖</p></div>
+      <div class="gallery" id="gallery"></div>
+      <p class="notes">瀏覽器沒有權限抓系統聲音，所以這裡用內建合成的 128 BPM 示範曲或你自己的音檔來驅動；還沒按播放時跑的是模擬頻譜。App 版改用 Core Audio Process Tap 抓系統輸出，後面的頻帶、平滑、峰值演算法跟這頁一模一樣。</p>
+    </div>
+
+    <aside class="rack" id="rack" aria-label="參數">
+      <!-- groups are generated -->
+    </aside>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+// ======================================================================
+// Parameters — this object IS the spec. Keys map 1:1 to Swift `VisualizerConfig`.
+// ======================================================================
+const DEFAULTS = {
+  bands:  { count: 64, fMinHz: 30, fMaxHz: 16000, tiltDbPerOct: 3.0 },
+  level:  { agc: true, rangeDb: 54, ceilingDb: -12, agcReleaseDbPerSec: 6, gamma: 1.3, gateDb: -90 },
+  motion: { attackMs: 12, releaseMs: 140, spatial: 0.35, peakHoldMs: 160, peakGravity: 3.2 },
+  look:   { theme: "bars", palette: "aurora", mirror: false, reflection: true, barGap: 0.28, windowMode: "card", opacity: 1.0 },
+  menubar:{ style: "bars", count: 7, colored: false }
+};
+const PALETTES = {
+  aurora:  { name: "Aurora",  stops: ["#21e6c1", "#3a9bff", "#a35cff"] },
+  ember:   { name: "Ember",   stops: ["#ffd23f", "#ff6b35", "#ff2d87"] },
+  glacier: { name: "Glacier", stops: ["#eaf7ff", "#8fd3ff", "#4c6fff"] },
+  mono:    { name: "Mono",    stops: ["#ffffff", "#d5dae5", "#98a1b4"] }
+};
+const THEMES = [
+  { id: "bars",   name: "經典直條", en: "NCS BARS" },
+  { id: "radial", name: "圓環放射", en: "RADIAL" },
+  { id: "neon",   name: "霓虹光暈", en: "NEON" },
+  { id: "led",    name: "極簡點陣", en: "LED MATRIX" }
+];
+
+const clone = o => JSON.parse(JSON.stringify(o));
+let P = clone(DEFAULTS);
+try { const s = localStorage.getItem("pulsefloat.params.v1"); if (s) P = deepMerge(clone(DEFAULTS), JSON.parse(s)); } catch (e) {}
+function deepMerge(a, b){ for (const k in b){ if (a[k] && typeof a[k]==="object" && typeof b[k]==="object") deepMerge(a[k], b[k]); else if (k in a) a[k]=b[k]; } return a; }
+function save(){ try { localStorage.setItem("pulsefloat.params.v1", JSON.stringify(P)); } catch (e) {} }
+
+// ======================================================================
+// Analysis state
+// ======================================================================
+const S = { N:0, fc:[], lo:[], hi:[], raw:[], cur:[], peak:[], peakT:[], peakV:[], tmp:[], ceil:-12, bass:0, colors:null, colorKey:"" };
+function rebuildBands(){
+  const N = P.bands.count|0, f0 = P.bands.fMinHz, f1 = P.bands.fMaxHz;
+  S.N = N; S.fc=new Float32Array(N); S.lo=new Float32Array(N); S.hi=new Float32Array(N);
+  for (let i=0;i<N;i++){
+    const a = f0*Math.pow(f1/f0, i/N), b = f0*Math.pow(f1/f0, (i+1)/N);
+    S.lo[i]=a; S.hi[i]=b; S.fc[i]=Math.sqrt(a*b);
+  }
+  S.raw=new Float32Array(N).fill(-160); S.cur=new Float32Array(N); S.peak=new Float32Array(N);
+  S.peakT=new Float32Array(N); S.peakV=new Float32Array(N); S.tmp=new Float32Array(N);
+  S.colorKey="";
+}
+rebuildBands();
+
+// Spectrum → per-band dBFS (pre-tilt). AnalyserNode: Blackman window, X[k]/N.
+// Full-scale sine reads 20log10(0.5*0.42) ≈ −13.55 dB, so +13.55 converts to dBFS.
+const ANALYSER_TO_DBFS = 13.55;
+function bandsFromAnalyser(freq, binHz){
+  const K = freq.length;
+  for (let i=0;i<S.N;i++){
+    const k0 = Math.ceil(S.lo[i]/binHz), k1 = Math.floor(S.hi[i]/binHz);
+    let v = -160;
+    if (k1 >= k0){
+      for (let k=k0;k<=k1 && k<K;k++){ const d=freq[k]; if (d>v) v=d; }
+    } else { // band narrower than one bin: interpolate at centre frequency
+      const x = S.fc[i]/binHz, k = Math.floor(x), t = x-k;
+      const a = freq[Math.min(k,K-1)], b = freq[Math.min(k+1,K-1)];
+      v = a + (b-a)*t;
+    }
+    S.raw[i] = Number.isFinite(v) ? v + ANALYSER_TO_DBFS : -160;
+  }
+}
+
+// Simulated spectrum (shown before any audio plays). Shapes a 128 BPM club mix.
+const SPB = 60/128;
+function gauss(x, w){ return Math.exp(-(x*x)/(2*w*w)); }
+function bandsSimulated(t){
+  const ph = (t/SPB)%1, kick = Math.exp(-ph*7), hat = Math.exp(-(((ph+.5)%1))*16);
+  const bar = ((Math.floor(t/(SPB*4))%4)+4)%4, chordHz = [220,174.6,261.6,196][bar];
+  const sweep = 900*Math.pow(2, Math.sin(t*0.45)*2);
+  for (let i=0;i<S.N;i++){
+    const f=S.fc[i], o=Math.log2(f/60);
+    let d = -20 - 4.2*o;
+    d += 16*kick*gauss(Math.log2(f/55), .7);
+    d += 9*gauss(Math.log2(f/chordHz), .35)*(0.7+0.3*Math.sin(t*3));
+    d += 7*gauss(Math.log2(f/sweep), .5);
+    d += 11*hat*gauss(Math.log2(f/9500), .9);
+    d += (Math.random()-.5)*7;
+    S.raw[i]=d;
+  }
+}
+
+// The core pipeline: tilt → AGC → normalise → gamma → spatial → attack/release → peaks.
+function processFrame(dt){
+  const N=S.N, L=P.level, M=P.motion, tilt=P.bands.tiltDbPerOct;
+  let frameMax = -160;
+  for (let i=0;i<N;i++){ const d = S.raw[i] + tilt*Math.log2(S.fc[i]/1000); S.tmp[i]=d; if (d>frameMax) frameMax=d; }
+  if (L.agc){
+    if (frameMax > S.ceil) S.ceil += (frameMax - S.ceil)*(1-Math.exp(-dt/0.05));
+    else S.ceil -= L.agcReleaseDbPerSec*dt;
+    S.ceil = Math.min(6, Math.max(-45, S.ceil));
+  } else S.ceil = L.ceilingDb;
+  const floor = S.ceil - L.rangeDb;
+  for (let i=0;i<N;i++){
+    const d=S.tmp[i];
+    let v = (S.raw[i] < L.gateDb) ? 0 : (d-floor)/L.rangeDb;
+    v = v<0?0:v>1?1:v;
+    S.tmp[i] = Math.pow(v, L.gamma);
+  }
+  // spatial smoothing (one pass, edges clamp)
+  const s=M.spatial; let prev=S.tmp[0];
+  for (let i=0;i<N;i++){
+    const c=S.tmp[i], nx=S.tmp[Math.min(N-1,i+1)];
+    const sm = (1-s)*c + s*0.5*(prev+nx); prev=c; S.tmp[i]=sm; // note: prev holds unsmoothed value
+  }
+  if (!(dt>0)) return;
+  const aA = 1-Math.exp(-dt/(M.attackMs/1000)), aR = 1-Math.exp(-dt/(M.releaseMs/1000));
+  let bass=0, nb=0;
+  for (let i=0;i<N;i++){
+    const tgt=S.tmp[i], c=S.cur[i];
+    const v = c + (tgt-c)*(tgt>c?aA:aR); S.cur[i]=v;
+    if (v >= S.peak[i]){ S.peak[i]=v; S.peakT[i]=0; S.peakV[i]=0; }
+    else {
+      S.peakT[i]+=dt;
+      if (S.peakT[i]*1000 > M.peakHoldMs){ S.peakV[i]+=M.peakGravity*dt; S.peak[i]-=S.peakV[i]*dt; if (S.peak[i]<v){S.peak[i]=v;S.peakV[i]=0;} }
+    }
+    if (S.fc[i] < 150){ bass+=v; nb++; }
+  }
+  const b = nb? bass/nb : 0;
+  S.bass += (b - S.bass)*(1-Math.exp(-dt/(b>S.bass?0.03:0.18)));
+}
+
+// ======================================================================
+// Colour helpers
+// ======================================================================
+function hex(h){ const n=parseInt(h.slice(1),16); return [(n>>16)&255,(n>>8)&255,n&255]; }
+function palAt(t){
+  const st = PALETTES[P.look.palette].stops.map(hex);
+  const x = Math.min(1,Math.max(0,t))*(st.length-1), i=Math.min(st.length-2,Math.floor(x)), f=x-i;
+  return st[i].map((c,j)=>Math.round(c+(st[i+1][j]-c)*f));
+}
+const rgba = (c,a)=>`rgba(${c[0]},${c[1]},${c[2]},${a})`;
+function bandColors(){
+  const key = P.look.palette+":"+S.N;
+  if (S.colorKey!==key){ S.colors=[]; for (let i=0;i<S.N;i++) S.colors.push(palAt(S.N>1?i/(S.N-1):0)); S.colorKey=key; }
+  return S.colors;
+}
+
+// ======================================================================
+// Renderers — each takes (ctx, w, h, opts). opts.small → thumbnail.
+// ======================================================================
+function rr(ctx,x,y,w,h,r){ r=Math.max(0,Math.min(r,w/2,h/2)); ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x,y,w,h,r) : ctx.rect(x,y,w,h); }
+
+function drawBars(ctx,w,h,o){
+  ctx.clearRect(0,0,w,h);
+  const N=S.N, cols=bandColors(), padX=w*0.05, padY=h*(o.small?0.1:0.12);
+  const pitch=(w-padX*2)/N, bw=Math.max(1,pitch*(1-P.look.barGap)), r=Math.min(bw/2,3);
+  const mirror=P.look.mirror;
+  const base = mirror ? h/2 : (P.look.reflection ? h*0.74 : h-padY);
+  const maxH = mirror ? h/2-padY : base-padY;
+  for (let i=0;i<N;i++){
+    const x=padX+i*pitch+(pitch-bw)/2, v=S.cur[i], bh=Math.max(2, v*maxH), c=cols[i];
+    const g=ctx.createLinearGradient(0,base-maxH,0,base);
+    g.addColorStop(0,rgba(c,1)); g.addColorStop(1,rgba(c,.55));
+    ctx.fillStyle=g;
+    if (mirror){ rr(ctx,x,base-bh,bw,bh*2,r); ctx.fill(); }
+    else {
+      rr(ctx,x,base-bh,bw,bh,r); ctx.fill();
+      if (P.look.reflection){ ctx.fillStyle=rgba(c,.16); rr(ctx,x,base+2,bw,bh*0.32,r); ctx.fill(); }
+    }
+    // peak cap
+    const py = base - Math.max(2,S.peak[i]*maxH) - 4;
+    ctx.fillStyle=rgba(c,.95); ctx.fillRect(x, py, bw, Math.max(1.5, o.small?1:2));
+    if (mirror){ const py2 = base + Math.max(2,S.peak[i]*maxH) + 2; ctx.fillRect(x, py2, bw, o.small?1:2); }
+  }
+}
+
+function drawRadial(ctx,w,h,o){
+  ctx.clearRect(0,0,w,h);
+  const N=S.N, cols=bandColors(), cx=w/2, cy=h/2, m=Math.min(w,h);
+  const pulse=1+0.08*S.bass, r0=m*0.18*pulse, len=m*0.3;
+  // Half circle per side, mirrored: low freq at top, highs meet at bottom.
+  const lw=Math.max(1.2, Math.min(5, (Math.PI*r0)/N*0.62));
+  ctx.lineCap="round"; ctx.lineWidth=lw;
+  for (let side=-1; side<=1; side+=2){
+    for (let i=0;i<N;i++){
+      const a = -Math.PI/2 + side*(Math.PI*(i+0.5)/N);
+      const v=S.cur[i], c=cols[i], L=Math.max(1.5, v*len);
+      const ca=Math.cos(a), sa=Math.sin(a);
+      ctx.strokeStyle=rgba(c,.95);
+      ctx.beginPath(); ctx.moveTo(cx+ca*(r0+3), cy+sa*(r0+3)); ctx.lineTo(cx+ca*(r0+3+L), cy+sa*(r0+3+L)); ctx.stroke();
+      if (!o.small){
+        const pr = r0+3+Math.max(1.5,S.peak[i]*len)+lw*1.6;
+        ctx.fillStyle=rgba(c,.9); ctx.beginPath(); ctx.arc(cx+ca*pr, cy+sa*pr, lw*0.5, 0, Math.PI*2); ctx.fill();
+      }
+    }
+  }
+  // core disc: in the app this holds the now-playing artwork
+  const c0=palAt(0), c2=palAt(1);
+  const g=ctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(1,r0));
+  g.addColorStop(0,"rgba(10,12,18,.92)"); g.addColorStop(1,"rgba(10,12,18,.75)");
+  ctx.fillStyle=g; const rc=Math.max(1,r0-2);
+  ctx.beginPath(); ctx.arc(cx,cy,rc,0,Math.PI*2); ctx.fill();
+  const rg=ctx.createLinearGradient(cx-r0,cy-r0,cx+r0,cy+r0); rg.addColorStop(0,rgba(c0,1)); rg.addColorStop(1,rgba(c2,1));
+  ctx.strokeStyle=rg; ctx.lineWidth=o.small?1.2:2; ctx.beginPath(); ctx.arc(cx,cy,rc,0,Math.PI*2); ctx.stroke();
+  ctx.globalAlpha=0.25+0.5*S.bass; ctx.lineWidth=o.small?0.8:1; ctx.beginPath(); ctx.arc(cx,cy,rc*0.72,0,Math.PI*2); ctx.stroke(); ctx.globalAlpha=1;
+}
+
+function drawNeon(ctx,w,h,o){
+  // afterimage: fade previous frame toward transparent (works on glass and on bare desktop)
+  ctx.save(); ctx.globalCompositeOperation="destination-out"; ctx.fillStyle=`rgba(0,0,0,${o.fade})`; ctx.fillRect(0,0,w,h); ctx.restore();
+  const N=S.N, cols=bandColors(), padX=w*0.06, mid=h*0.5, maxH=h*0.4;
+  const pitch=(w-padX*2)/N, lw=Math.max(1, pitch*(1-P.look.barGap)*0.7);
+  ctx.save(); ctx.globalCompositeOperation="lighter"; ctx.lineCap="round"; ctx.lineWidth=lw;
+  ctx.shadowBlur = o.small? 3 : 14 + 10*S.bass;
+  for (let i=0;i<N;i++){
+    const x=padX+(i+0.5)*pitch, v=S.cur[i], L=Math.max(1, v*maxH), c=cols[i];
+    ctx.shadowColor=rgba(c,1); ctx.strokeStyle=rgba(c,o.small?.55:.9);
+    ctx.beginPath(); ctx.moveTo(x, mid-L); ctx.lineTo(x, mid+L*0.55); ctx.stroke();
+  }
+  ctx.restore();
+  // horizon line
+  const g=ctx.createLinearGradient(padX,0,w-padX,0); g.addColorStop(0,rgba(palAt(0),0)); g.addColorStop(.5,rgba(palAt(.5),.5+.4*S.bass)); g.addColorStop(1,rgba(palAt(1),0));
+  ctx.fillStyle=g; ctx.fillRect(padX, mid-0.5, w-padX*2, 1);
+}
+
+function drawLed(ctx,w,h,o){
+  ctx.clearRect(0,0,w,h);
+  const cols = Math.max(8, Math.round(S.N/ (o.small?2:1.5)));
+  const padX=w*0.05, padY=h*0.1, pitch=(w-padX*2)/cols, cell=pitch*0.72;
+  const rows = Math.max(4, Math.floor((h-padY*2)/pitch));
+  const top = padY + ((h-padY*2) - rows*pitch)/2;
+  for (let c=0;c<cols;c++){
+    // resample bands → columns (max over covered bands)
+    const i0=Math.floor(c*S.N/cols), i1=Math.max(i0+1, Math.floor((c+1)*S.N/cols));
+    let v=0, pk=0; for (let i=i0;i<i1;i++){ if (S.cur[i]>v) v=S.cur[i]; if (S.peak[i]>pk) pk=S.peak[i]; }
+    const lit = Math.round(v*rows), pr = Math.min(rows-1, Math.round(pk*rows));
+    const x = padX + c*pitch + (pitch-cell)/2;
+    for (let r=0;r<rows;r++){
+      const y = top + (rows-1-r)*pitch + (pitch-cell)/2;
+      const col = palAt(r/(rows-1));
+      const on = r < lit, isPeak = (r===pr && pr>0 && !on);
+      ctx.fillStyle = on ? rgba(col,.95) : isPeak ? rgba(col,.7) : "rgba(255,255,255,.055)";
+      rr(ctx,x,y,cell,cell,Math.min(2,cell*0.25)); ctx.fill();
+    }
+  }
+}
+const RENDER = { bars:drawBars, radial:drawRadial, neon:drawNeon, led:drawLed };
+
+// Menu-bar status item: 7 log-grouped bars, template (monochrome) or coloured.
+function drawMenu(ctx,w,h){
+  ctx.clearRect(0,0,w,h);
+  const M=P.menubar.count, N=S.N, style=P.menubar.style;
+  const gap=1.5, bw=(w-gap*(M-1))/M;
+  for (let g=0; g<M; g++){
+    const i0=Math.floor(g*N/M), i1=Math.max(i0+1,Math.floor((g+1)*N/M));
+    let v=0; for (let i=i0;i<i1;i++) if (S.cur[i]>v) v=S.cur[i];
+    const col = P.menubar.colored ? rgba(palAt(g/(M-1)),1) : "rgba(255,255,255,.92)";
+    ctx.fillStyle = col;
+    const x=g*(bw+gap);
+    if (style==="bars"){ const bh=Math.max(2, v*h); rr(ctx,x,(h-bh)/2,bw,bh,bw/2); ctx.fill(); }
+    else { // dots: 4 stacked dots
+      const n=4, d=Math.min(bw, (h-(n-1)*1.5)/n), lit=Math.max(1, Math.round(v*n));
+      for (let k=0;k<n;k++){ ctx.globalAlpha = k<lit?1:.25; ctx.beginPath(); ctx.arc(x+bw/2, h-d/2-k*(d+1.5), d/2, 0, Math.PI*2); ctx.fill(); }
+      ctx.globalAlpha=1;
+    }
+  }
+}
+
+// ======================================================================
+// Canvas plumbing
+// ======================================================================
+const canvases = []; // {el, ctx, w, h, draw}
+function addCanvas(el, draw, opts={}){
+  const ctx=el.getContext("2d"); const c={el,ctx,w:0,h:0,draw,opts};
+  const fit=()=>{ const r=el.getBoundingClientRect(), d=Math.min(2, window.devicePixelRatio||1);
+    c.w=Math.max(1,r.width); c.h=Math.max(1,r.height); el.width=Math.round(c.w*d); el.height=Math.round(c.h*d); ctx.setTransform(d,0,0,d,0,0); };
+  fit(); new ResizeObserver(fit).observe(el); canvases.push(c); return c;
+}
+
+// ======================================================================
+// Audio
+// ======================================================================
+let AC=null, analyser=null, freq=null, master=null, comp=null, mode="sim", sched=null, fileSrc=null, playing=false;
+function ensureAudio(){
+  if (AC) return;
+  AC = new (window.AudioContext||window.webkitAudioContext)();
+  analyser = AC.createAnalyser(); analyser.fftSize=4096; analyser.smoothingTimeConstant=0; analyser.minDecibels=-160; analyser.maxDecibels=0;
+  freq = new Float32Array(analyser.frequencyBinCount);
+  comp = AC.createDynamicsCompressor(); comp.threshold.value=-14; comp.ratio.value=4;
+  master = AC.createGain(); master.gain.value=+document.getElementById("vol").value;
+  comp.connect(analyser); analyser.connect(master); master.connect(AC.destination);
+}
+// --- demo track: 128 BPM, Am–F–C–G, kick / clap / hats / offbeat bass / ducked pad / 16th arp
+let noiseBuf=null, padBus=null, nextT=0, step=0;
+const mtof = m => 440*Math.pow(2,(m-69)/12);
+const CH = [[57,60,64],[53,57,60],[60,64,67],[55,59,62]], BASS=[33,29,36,31];
+function voice(type, f, t, dur, peak, filtF, dest, det=0){
+  const o=AC.createOscillator(), g=AC.createGain(), fl=AC.createBiquadFilter();
+  o.type=type; o.frequency.value=f; o.detune.value=det; fl.type="lowpass"; fl.frequency.value=filtF;
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(peak,t+0.008); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(fl); fl.connect(g); g.connect(dest); o.start(t); o.stop(t+dur+0.05);
+}
+function noise(t, dur, peak, type, f, q, dest){
+  const s=AC.createBufferSource(), fl=AC.createBiquadFilter(), g=AC.createGain();
+  s.buffer=noiseBuf; fl.type=type; fl.frequency.value=f; fl.Q.value=q;
+  g.gain.setValueAtTime(peak,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  s.connect(fl); fl.connect(g); g.connect(dest); s.start(t, Math.random()*1.5); s.stop(t+dur+0.02);
+}
+function schedStep(s, t){
+  const st=s%16, bar=Math.floor(s/16)%4, ch=CH[bar], sp=SPB/4;
+  if (st%4===0){ // kick + pad duck
+    const o=AC.createOscillator(), g=AC.createGain();
+    o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(42,t+0.12);
+    g.gain.setValueAtTime(0.95,t); g.gain.exponentialRampToValueAtTime(0.0001,t+0.38);
+    o.connect(g); g.connect(comp); o.start(t); o.stop(t+0.4);
+    padBus.gain.setValueAtTime(0.015,t); padBus.gain.linearRampToValueAtTime(0.09,t+SPB*0.6);
+  }
+  if (st===4||st===12) noise(t,0.16,0.5,"bandpass",1700,0.8,comp);
+  if (st%4===2) noise(t,0.06,0.16,"highpass",7500,0.7,comp); else if (st%2===1) noise(t,0.03,0.05,"highpass",9000,0.7,comp);
+  if (st%4===2){ voice("sawtooth",mtof(BASS[bar]+12),t,sp*1.6,0.32,520,comp,-8); voice("sawtooth",mtof(BASS[bar]+12),t,sp*1.6,0.32,520,comp,8); }
+  if (st===0) for (const n of ch){ voice("sawtooth",mtof(n),t,SPB*4,0.5,1500,padBus,-12); voice("sawtooth",mtof(n),t,SPB*4,0.5,1500,padBus,12); }
+  const arp=[0,1,2,1,0,2,1,2]; const n = ch[arp[st%8]] + (st>=8?24:12);
+  voice("square", mtof(n), t, sp*0.9, 0.05, 2800, comp);
+}
+function startDemo(){
+  ensureAudio(); stopFile();
+  if (!noiseBuf){ noiseBuf=AC.createBuffer(1, AC.sampleRate*2, AC.sampleRate); const d=noiseBuf.getChannelData(0); for (let i=0;i<d.length;i++) d[i]=Math.random()*2-1; }
+  if (!padBus){ padBus=AC.createGain(); padBus.gain.value=0.09; padBus.connect(comp); }
+  AC.resume(); nextT=AC.currentTime+0.06; step=0;
+  clearInterval(sched);
+  sched=setInterval(()=>{ while (nextT < AC.currentTime+0.12){ schedStep(step,nextT); nextT+=SPB/4; step++; } }, 25);
+  mode="demo"; playing=true; setChip("示範曲 · 128 BPM"); setPlayBtn();
+}
+function stopDemo(){ clearInterval(sched); sched=null; }
+function stopFile(){ if (fileSrc){ try{fileSrc.stop();}catch(e){} fileSrc.disconnect(); fileSrc=null; } }
+async function playFile(file){
+  ensureAudio(); stopDemo(); stopFile(); await AC.resume();
+  setChip("解碼中…");
+  try{
+    const buf = await AC.decodeAudioData(await file.arrayBuffer());
+    fileSrc = AC.createBufferSource(); fileSrc.buffer=buf; fileSrc.loop=true; fileSrc.connect(comp); fileSrc.start();
+    mode="file"; playing=true; setChip(file.name.length>28? file.name.slice(0,26)+"…" : file.name); setPlayBtn();
+  }catch(e){ mode="sim"; playing=false; setChip("無法解碼這個檔案，換 mp3 / wav / m4a 試試"); setPlayBtn(); }
+}
+function togglePlay(){
+  if (!playing){ if (mode==="file" && fileSrc){ AC.resume(); playing=true; } else startDemo(); }
+  else { if (mode==="demo"){ stopDemo(); } AC.suspend(); playing=false; if (mode==="demo") mode="sim"; }
+  setPlayBtn(); if (!playing && mode==="sim") setChip("模擬訊號");
+}
+function setChip(t){ document.getElementById("srcChip").innerHTML = "來源 <b></b>"; document.querySelector("#srcChip b").textContent=t; }
+function setPlayBtn(){ document.getElementById("playDemo").textContent = playing ? "❚❚ 暫停" : "▶ 播放示範曲"; }
+document.getElementById("playDemo").addEventListener("click", togglePlay);
+document.getElementById("fileIn").addEventListener("change", e=>{ const f=e.target.files[0]; if (f) playFile(f); e.target.value=""; });
+document.getElementById("vol").addEventListener("input", e=>{ if (master) master.gain.value=+e.target.value; });
+
+// ======================================================================
+// UI: stage, popover, gallery, rack
+// ======================================================================
+const stage=document.getElementById("stage"), fl=document.getElementById("float");
+const main = addCanvas(document.getElementById("cvMain"), (c)=>RENDER[P.look.theme](c.ctx,c.w,c.h,{small:false,fade:c.fade}));
+const menu = addCanvas(document.getElementById("cvMenu"), (c)=>drawMenu(c.ctx,c.w,c.h));
+
+// gallery
+const gal=document.getElementById("gallery"), tiles=[];
+THEMES.forEach(t=>{
+  const b=document.createElement("button"); b.type="button"; b.className="tile"; b.dataset.theme=t.id;
+  b.innerHTML=`<div class="screen"><canvas></canvas></div><div class="name"><span>${t.name}</span><em>${t.en}</em></div>`;
+  b.addEventListener("click",()=>setTheme(t.id)); gal.appendChild(b); tiles.push(b);
+  const th=t.id; addCanvas(b.querySelector("canvas"), (c)=>RENDER[th](c.ctx,c.w,c.h,{small:true,fade:c.fade}));
+});
+// popover theme chips
+const popThemes=document.getElementById("popThemes"), chips=[];
+THEMES.forEach(t=>{
+  const b=document.createElement("button"); b.type="button"; b.title=t.name; b.setAttribute("aria-label",t.name); b.dataset.theme=t.id;
+  b.innerHTML="<canvas></canvas>"; b.addEventListener("click",()=>setTheme(t.id)); popThemes.appendChild(b); chips.push(b);
+  const th=t.id; addCanvas(b.querySelector("canvas"), (c)=>RENDER[th](c.ctx,c.w,c.h,{small:true,fade:c.fade}));
+});
+function setTheme(id){ P.look.theme=id; save(); syncTheme(); }
+function syncTheme(){
+  [...tiles,...chips].forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.theme===P.look.theme)));
+  main.ctx.clearRect(0,0,main.w,main.h);
+}
+document.getElementById("hudTheme").addEventListener("click",e=>{ e.stopPropagation(); const i=THEMES.findIndex(t=>t.id===P.look.theme); setTheme(THEMES[(i+1)%THEMES.length].id); });
+
+// window mode / opacity / lock
+function syncWindow(){
+  fl.classList.toggle("card", P.look.windowMode==="card"); fl.classList.toggle("bare", P.look.windowMode==="bare");
+  fl.style.opacity = P.look.opacity; document.getElementById("popOpacity").value=P.look.opacity;
+}
+let locked=false;
+function setLocked(v){ locked=v; fl.classList.toggle("locked",v); document.getElementById("hudLock").setAttribute("aria-pressed",String(v)); document.getElementById("popLock").checked=v; }
+document.getElementById("hudLock").addEventListener("click",e=>{ e.stopPropagation(); setLocked(!locked); });
+document.getElementById("popLock").addEventListener("change",e=>setLocked(e.target.checked));
+document.getElementById("hudHide").addEventListener("click",e=>{ e.stopPropagation(); fl.hidden=true; document.getElementById("popShow").checked=false; });
+document.getElementById("popShow").addEventListener("change",e=>{ fl.hidden=!e.target.checked; });
+document.getElementById("popOpacity").addEventListener("input",e=>{ P.look.opacity=+e.target.value; save(); syncWindow(); rackSync(); });
+
+// drag + resize inside stage (percent-based so it survives stage resizes)
+(function(){
+  let dragging=null;
+  fl.addEventListener("pointerdown",e=>{
+    if (e.target.closest(".hud")) return;
+    const sr=stage.getBoundingClientRect(), fr=fl.getBoundingClientRect();
+    const resize = e.target===document.getElementById("grip");
+    if (locked && !resize) return;
+    dragging={resize, sx:e.clientX, sy:e.clientY, l:fr.left-sr.left, t:fr.top-sr.top, w:fr.width, sr};
+    fl.setPointerCapture(e.pointerId); fl.classList.add("dragging");
+  });
+  fl.addEventListener("pointermove",e=>{
+    if (!dragging) return; const d=dragging, dx=e.clientX-d.sx, dy=e.clientY-d.sy, sr=d.sr;
+    if (d.resize){
+      const w=Math.max(180, Math.min(sr.width-d.l-4, d.w+dx)); fl.style.width=(w/sr.width*100)+"%";
+    } else {
+      const fr=fl.getBoundingClientRect();
+      const l=Math.max(0, Math.min(sr.width-fr.width, d.l+dx)), t=Math.max(28, Math.min(sr.height-fr.height, d.t+dy));
+      fl.style.left=(l/sr.width*100)+"%"; fl.style.top=(t/sr.height*100)+"%";
+    }
+  });
+  const end=()=>{ dragging=null; fl.classList.remove("dragging"); };
+  fl.addEventListener("pointerup",end); fl.addEventListener("pointercancel",end);
+})();
+
+// popover
+const pop=document.getElementById("popover"), si=document.getElementById("statusItem");
+function placePopover(){ const sr=stage.getBoundingClientRect(), r=si.getBoundingClientRect();
+  const w=Math.min(268, sr.width-16); let left=r.left-sr.left+r.width/2-w/2; left=Math.max(8,Math.min(sr.width-w-8,left)); pop.style.left=left+"px"; }
+si.addEventListener("click",e=>{ e.stopPropagation(); pop.hidden=!pop.hidden; si.classList.toggle("open",!pop.hidden); si.setAttribute("aria-expanded",String(!pop.hidden)); if(!pop.hidden) placePopover(); });
+document.addEventListener("pointerdown",e=>{ if (!pop.hidden && !pop.contains(e.target) && !si.contains(e.target)){ pop.hidden=true; si.classList.remove("open"); si.setAttribute("aria-expanded","false"); } });
+
+// clock
+function tick(){ const d=new Date(); const wd="日一二三四五六"[d.getDay()];
+  document.getElementById("clock").textContent=`${d.getMonth()+1}月${d.getDate()}日 週${wd} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; }
+tick(); setInterval(tick, 20000);
+
+// ---------------- rack ----------------
+const GROUPS = [
+  { title:"頻段 BANDS", open:true, items:[
+    {k:"bands.count", label:"柱數", min:16, max:128, step:4, fmt:v=>v, rebuild:true, hint:"NCS 常見 48–72；選單列另外合併成 7 根"},
+    {k:"bands.fMinHz", label:"最低頻率", min:20, max:120, step:5, fmt:v=>v+" Hz", rebuild:true},
+    {k:"bands.fMaxHz", label:"最高頻率", min:6000, max:20000, step:500, fmt:v=>(v/1000).toFixed(1)+" kHz", rebuild:true},
+    {k:"bands.tiltDbPerOct", label:"高頻補償", min:0, max:6, step:0.5, fmt:v=>"+"+v.toFixed(1)+" dB/oct", hint:"音樂能量隨頻率下降，不補償右半邊會一直很矮。以 1 kHz 為零點"}
+  ]},
+  { title:"動態 MOTION", open:true, items:[
+    {k:"motion.attackMs", label:"上升時間", min:2, max:80, step:1, fmt:v=>v+" ms", hint:"越小越跟拍；低於 8 ms 會抖"},
+    {k:"motion.releaseMs", label:"回落時間", min:40, max:600, step:10, fmt:v=>v+" ms", hint:"NCS 手感的關鍵：快上慢下"},
+    {k:"motion.spatial", label:"相鄰柱平滑", min:0, max:0.8, step:0.05, fmt:v=>v.toFixed(2), hint:"把相鄰柱子拉近，輪廓更像一條曲線"},
+    {k:"motion.peakHoldMs", label:"峰值停留", min:0, max:600, step:20, fmt:v=>v+" ms"},
+    {k:"motion.peakGravity", label:"峰值掉落加速度", min:0.5, max:10, step:0.1, fmt:v=>v.toFixed(1)+" /s²", hint:"單位是「整個高度 / 秒²」"}
+  ]},
+  { title:"響度 LEVEL", open:false, items:[
+    {k:"level.agc", label:"自動增益（AGC）", type:"bool", hint:"自動追蹤最大音量，音量轉小時畫面不會一起變小"},
+    {k:"level.rangeDb", label:"動態範圍", min:24, max:84, step:2, fmt:v=>v+" dB"},
+    {k:"level.ceilingDb", label:"固定上限（AGC 關閉時）", min:-40, max:0, step:1, fmt:v=>v+" dBFS"},
+    {k:"level.agcReleaseDbPerSec", label:"AGC 回復速度", min:1, max:20, step:1, fmt:v=>v+" dB/s"},
+    {k:"level.gamma", label:"對比（gamma）", min:0.6, max:2.4, step:0.05, fmt:v=>v.toFixed(2), hint:"大於 1：小訊號壓低、高峰更突出"}
+  ]},
+  { title:"外觀 LOOK", open:true, items:[
+    {k:"look.palette", label:"配色", type:"palette"},
+    {k:"look.windowMode", label:"視窗樣式", type:"seg", opts:[["card","毛玻璃卡片"],["bare","透明（只剩柱子）"]]},
+    {k:"look.mirror", label:"上下鏡像（直條）", type:"bool"},
+    {k:"look.reflection", label:"倒影（直條）", type:"bool"},
+    {k:"look.barGap", label:"柱間距", min:0.05, max:0.6, step:0.01, fmt:v=>Math.round(v*100)+"%"},
+    {k:"look.opacity", label:"視窗透明度", min:0.3, max:1, step:0.05, fmt:v=>Math.round(v*100)+"%"}
+  ]},
+  { title:"選單列 MENU BAR", open:false, items:[
+    {k:"menubar.style", label:"圖示樣式", type:"seg", opts:[["bars","直條"],["dots","點"]]},
+    {k:"menubar.count", label:"根數", min:5, max:9, step:1, fmt:v=>v},
+    {k:"menubar.colored", label:"使用配色（關閉＝跟系統單色）", type:"bool", hint:"預設單色，才會跟淺色或深色選單列都協調"}
+  ]}
+];
+const get=k=>k.split(".").reduce((o,x)=>o[x],P);
+const set=(k,v)=>{ const ks=k.split("."), last=ks.pop(); ks.reduce((o,x)=>o[x],P)[last]=v; };
+const rack=document.getElementById("rack"); const syncers=[];
+GROUPS.forEach((g,gi)=>{
+  const d=document.createElement("details"); if (g.open) d.open=true;
+  d.innerHTML=`<summary>${g.title}</summary><div class="group"></div>`; const box=d.querySelector(".group");
+  g.items.forEach(it=>{
+    const id="p_"+it.k.replace(".","_"); const row=document.createElement("div"); row.className="param";
+    if (it.type==="bool"){
+      row.innerHTML=`<div class="toggle-row" style="grid-column:1/-1"><label for="${id}">${it.label}</label><div class="switch"><input type="checkbox" id="${id}"></div></div>`+(it.hint?`<small>${it.hint}</small>`:"");
+      const inp=row.querySelector("input"); inp.addEventListener("change",()=>{ set(it.k,inp.checked); after(it); });
+      syncers.push(()=>inp.checked=get(it.k));
+    } else if (it.type==="seg"){
+      row.innerHTML=`<label>${it.label}</label><span></span><div class="seg" role="group" aria-label="${it.label}"></div>`;
+      const seg=row.querySelector(".seg");
+      it.opts.forEach(([v,l])=>{ const b=document.createElement("button"); b.type="button"; b.id=id+"_"+v; b.textContent=l; b.addEventListener("click",()=>{ set(it.k,v); after(it); }); seg.appendChild(b); });
+      syncers.push(()=>[...seg.children].forEach((b,i)=>b.setAttribute("aria-pressed",String(it.opts[i][0]===get(it.k)))));
+    } else if (it.type==="palette"){
+      row.innerHTML=`<label>${it.label}</label><span></span><div class="swatches"></div>`;
+      const sw=row.querySelector(".swatches");
+      Object.entries(PALETTES).forEach(([key,p])=>{ const b=document.createElement("button"); b.type="button"; b.id=id+"_"+key;
+        b.style.background=`linear-gradient(90deg,${p.stops.join(",")})`; b.innerHTML=`<span>${p.name}</span>`; b.setAttribute("aria-label",p.name);
+        b.addEventListener("click",()=>{ set(it.k,key); after(it); }); sw.appendChild(b); });
+      syncers.push(()=>[...sw.children].forEach(b=>b.setAttribute("aria-pressed",String(b.id.endsWith("_"+get(it.k))))));
+    } else {
+      row.innerHTML=`<label for="${id}">${it.label}</label><output id="${id}_o"></output><input type="range" id="${id}" min="${it.min}" max="${it.max}" step="${it.step}">`+(it.hint?`<small>${it.hint}</small>`:"");
+      const inp=row.querySelector("input"), out=row.querySelector("output");
+      inp.addEventListener("input",()=>{ set(it.k,+inp.value); out.textContent=it.fmt(+inp.value); after(it); });
+      syncers.push(()=>{ inp.value=get(it.k); out.textContent=it.fmt(get(it.k)); });
+    }
+    box.appendChild(row);
+  });
+  rack.appendChild(d);
+});
+rack.insertAdjacentHTML("beforeend",`
+  <div class="readout" aria-live="off"><span>FPS <b id="rFps">–</b></span><span>AGC 上限 <b id="rCeil">–</b></span><span>低頻能量 <b id="rBass">–</b></span></div>
+  <div class="foot">
+    <button type="button" class="primary" id="copyJson">複製參數 JSON</button>
+    <button type="button" id="resetP">恢復預設</button>
+    <span class="toast" id="toast" role="status"></span>
+    <textarea id="jsonOut" hidden readonly aria-label="參數 JSON"></textarea>
+  </div>`);
+function after(it){ if (it.rebuild){ if (P.bands.fMaxHz<=P.bands.fMinHz*4) P.bands.fMaxHz=P.bands.fMinHz*4; rebuildBands(); } save(); rackSync(); syncWindow(); }
+function rackSync(){ syncers.forEach(f=>f()); }
+document.getElementById("copyJson").addEventListener("click",()=>{
+  const txt=JSON.stringify(P,null,2), ta=document.getElementById("jsonOut"), toast=document.getElementById("toast");
+  const fallback=()=>{ ta.hidden=false; ta.value=txt; ta.focus(); ta.select(); toast.textContent="已選取，按 ⌘C 複製"; };
+  try{ navigator.clipboard.writeText(txt).then(()=>{ toast.textContent="已複製，貼回對話給我"; ta.hidden=true; }, fallback); }catch(e){ fallback(); }
+});
+document.getElementById("resetP").addEventListener("click",()=>{ P=clone(DEFAULTS); rebuildBands(); save(); rackSync(); syncWindow(); syncTheme(); document.getElementById("toast").textContent="已恢復預設"; });
+
+rackSync(); syncWindow(); syncTheme();
+
+// ======================================================================
+// Main loop
+// ======================================================================
+const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let last=performance.now(), simT=0, simFrames=0, fpsAcc=0, fpsN=0, fpsT=0;
+function frame(now){
+  const dt=Math.min(0.05,Math.max(0,(now-last)/1000)); last=now;
+  const live = playing && AC && AC.state==="running";
+  // reduced motion: settle the simulated spectrum into one still frame until the viewer presses play
+  const runSim = !live && (!reduce || simFrames < 45);
+  if (live){ analyser.getFloatFrequencyData(freq); bandsFromAnalyser(freq, AC.sampleRate/analyser.fftSize); }
+  else if (runSim){ simT += reduce ? 0 : dt; if (reduce && simFrames===0) simT=1.2; bandsSimulated(simT); simFrames++; }
+  if (live || runSim) processFrame(live || !reduce ? dt : 1/60);
+  const fade = 1-Math.exp(-dt/0.07);
+  for (const c of canvases){ if (c.w<6||c.h<6||!c.el.offsetParent) continue; c.fade=fade; c.draw(c); }
+  fpsAcc+=dt; fpsN++; if (now-fpsT>500){ document.getElementById("rFps").textContent=Math.round(fpsN/fpsAcc); document.getElementById("rCeil").textContent=S.ceil.toFixed(1)+" dB"; document.getElementById("rBass").textContent=S.bass.toFixed(2); fpsAcc=0; fpsN=0; fpsT=now; }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>
