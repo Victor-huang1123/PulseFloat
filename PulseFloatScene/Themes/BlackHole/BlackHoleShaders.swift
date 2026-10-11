@@ -321,14 +321,18 @@ enum BlackHoleShaders {
     float2 sd = v1.xy / max(-v1.z, 1e-3) - v0.xy / max(-v0.z, 1e-3);
     float2 tdir = length(sd) > 1e-7 ? normalize(sd) : float2(1.0, 0.0);
     float2 nrm = float2(-tdir.y, tdir.x);
-    v0.xy += nrm * side * u_mode.z * 0.5 * (-v0.z / max(-hole.z, 1e-3));
+    // 線寬至少約 2 px：小視窗（尤其 LOW 沒有 MSAA）時細環不會斷成虛線；加寬時亮度與不透明度依覆蓋率降低
+    float halfPx = u_mode.z * 0.5 / max(-hole.z, 1e-3) * scn_frame.projectionTransform[1][1] * 0.5
+                 / max(scn_frame.inverseResolution.y, 1e-6);
+    float widen = max(1.0, 1.0 / max(halfPx, 1e-3));
+    v0.xy += nrm * side * u_mode.z * 0.5 * widen * (-v0.z / max(-hole.z, 1e-3));
     _geometry.position = scn_node.inverseModelViewTransform * float4(v0, 1.0);
     float left = clamp(-(v0.x / max(-v0.z, 1e-3) - hole.x / max(-hole.z, 1e-3)) * 2.0, -1.0, 1.0);
     float depth = clamp(1.0 - 0.45 * (-v0.z + hole.z), 0.45, 1.35);
     float3 camM = (scn_node.inverseModelViewTransform * float4(0.0, 0.0, 0.0, 1.0)).xyz;
     float cover = bh_disk_cover(p0, camM, u_shape.x, u_shape.y);
     float vis = u_mode.x > 0.5 ? 1.0 - cover : cover;
-    out.v_ring = float4(th, side, left, depth * vis);
+    out.v_ring = float4(th, side, left, depth * vis / widen);
     """
 
     static let ringFragment = common + arguments + """
@@ -394,7 +398,7 @@ enum BlackHoleShaders {
     float3 hole = (mv * float4(0.0, 0.0, 0.0, 1.0)).xyz;
     float dh = max(-hole.z, 1e-3);
     float rsAngle = u_shape.z / dh;
-    // 拖尾長度跟著軌道相位的前進速率（靜音時縮成圓點）
+    // 拖尾長度跟著軌道相位的前進速率（靜音時縮到最短）
     float len = a * tc.x * (0.07 + 0.2 * u_dyn1[2].w) * (kind > 0.25 && kind < 0.75 ? 0.4 : 1.0);
     float wgt = 1.0;
     float3 vh = bh_lens((mv * float4(p, 1.0)).xyz, hole, u_shape.w, u_mode.y, 0.0, rsAngle, wgt);
