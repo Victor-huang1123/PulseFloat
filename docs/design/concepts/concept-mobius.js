@@ -77,10 +77,18 @@
     return f;
   }
 
+  // Continuous, symmetric frequency mapping around the loop (no seam):
+  // crossing (u = 0, 0.5, 1) = mids, far end of the left lobe (u = 0.25) = lowest band,
+  // far end of the right lobe (u = 0.75) = highest band.
+  function freqAt(u) {
+    const x = ((u % 1) + 1) % 1;
+    return x < 0.5 ? 0.5 - 0.5 * Math.sin(Math.PI * x / 0.5) : 0.5 + 0.5 * Math.sin(Math.PI * (x - 0.5) / 0.5);
+  }
+
   function bandEnergy(S, u) {
     const N = S.N | 0;
     if (N <= 0 || !S.cur) return 0;
-    const x = Math.min(N - 1, Math.max(0, u * N)), i = Math.floor(x), j = Math.min(N - 1, i + 1), fr = x - i;
+    const x = Math.min(N - 1, Math.max(0, freqAt(u) * (N - 1))), i = Math.floor(x), j = Math.min(N - 1, i + 1), fr = x - i;
     const v = (+S.cur[i] || 0) * (1 - fr) + (+S.cur[j] || 0) * fr;
     return v < 0.004 ? 0 : Math.min(1, v);
   }
@@ -103,13 +111,13 @@
     if (bass < 0.35) st.armed = true;
     st.prevBass = bass;
     for (const p of st.pulses) { p.u += dt * 0.55; p.a *= Math.exp(-dt * 0.9); }
-    st.pulses = st.pulses.filter(p => p.u < 1.05 && p.a > 0.02);
+    st.pulses = st.pulses.filter(p => p.u < 1 && p.a > 0.02);
     return dt;
   }
 
   function pulseAt(st, u) {
     let v = 0;
-    for (const p of st.pulses) { const d = u - p.u; v += p.a * Math.exp(-(d * d) / 0.0012); }
+    for (const p of st.pulses) { let d = Math.abs(u - p.u) % 1; d = Math.min(d, 1 - d); v += p.a * Math.exp(-(d * d) / 0.0012); }
     return Math.min(1.5, v);
   }
 
@@ -223,7 +231,7 @@
         m.scale(vS.set(half * 2, finH, finDepth));
         m.setPosition(f.P[i][0], f.P[i][1], f.P[i][2]);
         rig.mesh.setMatrixAt(i, m);
-        const base = baseColor(styleName, u), pc = (STYLES[styleName] || STYLES.porcelain).pulse;
+        const base = baseColor(styleName, freqAt(u)), pc = (STYLES[styleName] || STYLES.porcelain).pulse;
         const g = Math.min(1, pu * 0.9 + e * 0.18);
         col.setRGB(
           (base[0] * (1 - g) + pc[0] * g) / 255,
@@ -242,7 +250,9 @@
     // overlay helpers
     let loudest = 0, best = -1; const N = S.N | 0;
     for (let b = 0; b < N; b++) { const v = +S.cur[b] || 0; if (v > best) { best = v; loudest = b; } }
-    const loudestFin = N > 0 && best > 0 ? Math.round(((loudest + 0.5) / N) * M) % M : 0;
+    const fl = N > 1 ? loudest / (N - 1) : 0.5;
+    const uL = fl < 0.5 ? (Math.asin(Math.min(1, (0.5 - fl) / 0.5)) / Math.PI) * 0.5 : 0.5 + (Math.asin(Math.min(1, (fl - 0.5) / 0.5)) / Math.PI) * 0.5;
+    const loudestFin = N > 0 && best > 0 ? Math.round(uL * M) % M : 0;
     rig.group.updateMatrixWorld();
     const project = (u) => {
       const f = rig.frames, i = Math.min(f.M - 1, Math.max(0, Math.round(u * f.M)));

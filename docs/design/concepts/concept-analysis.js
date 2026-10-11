@@ -9,13 +9,13 @@
   const SHOTS = [
     { name: "FULL VIEW", pos: [0, 0.55, 5.2], look: [0, -0.05, 0], fov: 28, callouts: 1 },
     { name: "THREE-QUARTER", pos: [2.7, 1.15, 3.9], look: [0.15, -0.12, 0], fov: 30, callouts: 1 },
-    { name: "MACRO · FINS", macroU: 0.17, fov: 38, callouts: 0 },
+    { name: "MACRO · FINS", macroU: 0.22, fov: 38, callouts: 0 },
     { name: "LOW ANGLE", pos: [-1.3, -0.4, 3.7], look: [0, 0.05, 0], fov: 30, callouts: 1 },
   ];
   const SECTIONS = [
-    { key: "BASS", zh: "低頻", range: "20–250 Hz", u: 0.16, from: 0, to: 0.25, place: "bl" },
-    { key: "MID", zh: "中頻", range: "250 Hz–4 kHz", u: 0.47, from: 0.25, to: 0.75, place: "tl" },
-    { key: "TREBLE", zh: "高頻", range: "4–16 kHz", u: 0.8, from: 0.75, to: 1, place: "tr" },
+    { key: "BASS", zh: "低頻", range: "20–250 Hz", u: 0.25, from: 0, to: 0.25, place: "bl" },
+    { key: "MID", zh: "中頻", range: "250 Hz–4 kHz", u: 0.02, from: 0.25, to: 0.75, place: "tl" },
+    { key: "TREBLE", zh: "高頻", range: "4–16 kHz", u: 0.75, from: 0.75, to: 1, place: "tr" },
   ];
   const CAPTIONS = {
     silent: ["等待訊號。", "AWAITING SIGNAL."],
