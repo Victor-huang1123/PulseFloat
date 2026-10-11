@@ -1,0 +1,7 @@
+{
+  "bands":   { "count": 64, "fMinHz": 30, "fMaxHz": 16000, "tiltDbPerOct": 3.0 },
+  "level":   { "agc": true, "rangeDb": 54, "ceilingDb": -12, "agcReleaseDbPerSec": 6, "gamma": 1.3, "gateDb": -90 },
+  "motion":  { "attackMs": 12, "releaseMs": 140, "spatial": 0.35, "peakHoldMs": 160, "peakGravity": 3.2 },
+  "look":    { "theme": "bars", "palette": "aurora", "mirror": false, "reflection": true, "barGap": 0.28, "windowMode": "card", "opacity": 1.0 },
+  "menubar": { "style": "bars", "count": 7, "colored": false }
+}

@@ -1,2 +1,7 @@
 .DS_Store
 .codex-runs/
+*.xcodeproj/
+build/
+DerivedData/
+xcuserdata/
+*.xcresult
