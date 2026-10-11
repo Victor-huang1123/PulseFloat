@@ -1,10 +1,11 @@
 import AppKit
+import PulseFloatCore
 
 /// 不取得鍵盤焦點的浮動視窗；只在主執行緒使用，尺寸單位為 pt。
 @MainActor
 final class FloatingPanel: NSPanel {
     init() {
-        let size = NSSize(width: 520, height: 200)
+        let size = NSSize(width: WindowGeometry.defaultWidth, height: WindowGeometry.defaultWidth / WindowGeometry.aspect)
         super.init(
             contentRect: NSRect(origin: .zero, size: size),
             styleMask: [.borderless, .nonactivatingPanel],
@@ -20,21 +21,25 @@ final class FloatingPanel: NSPanel {
         // 明確設為 false，讓 bare 模式的透明區域也接受拖曳與滑過。
         ignoresMouseEvents = false
         acceptsMouseMovedEvents = true
-        minSize = NSSize(width: 182, height: 70)
-        contentAspectRatio = NSSize(width: 2.6, height: 1)
+        minSize = NSSize(width: WindowGeometry.minWidth, height: WindowGeometry.minWidth / WindowGeometry.aspect)
+        contentAspectRatio = NSSize(width: WindowGeometry.aspect, height: 1)
         isReleasedWhenClosed = false
-        setInitialPosition(size: size)
+        restoreFrame(ConfigStore.loadWindowFrame())
     }
 
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 
-    private func setInitialPosition(size: NSSize) {
-        guard let screen = NSScreen.main ?? NSScreen.screens.first else { return }
-        let visibleFrame = screen.visibleFrame
-        setFrameOrigin(NSPoint(
-            x: visibleFrame.minX + 0.08 * visibleFrame.width,
-            y: visibleFrame.maxY - 0.40 * visibleFrame.height - size.height
-        ))
+    /// 放回上次的位置與大小（沒有存過就用預設），並夾在所在螢幕的可用範圍內；
+    /// 原本的螢幕已經不在時，保留大小、移到主螢幕。
+    func restoreFrame(_ saved: NSRect?) {
+        let visibles = NSScreen.screens.map(\.visibleFrame)
+        guard let main = (NSScreen.main ?? NSScreen.screens.first)?.visibleFrame else { return }
+        guard let saved else {
+            setFrame(WindowGeometry.defaultFrame(in: main), display: false)
+            return
+        }
+        let visible = WindowGeometry.bestVisibleFrame(for: saved, among: visibles) ?? main
+        setFrame(WindowGeometry.fit(saved, in: visible), display: true)
     }
 }

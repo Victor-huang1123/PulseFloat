@@ -1,5 +1,11 @@
 # CLAUDE.md — PulseFloat
 
+> **目前流程（使用者 2026-10 指示，優先於下方舊規則）**：T03 之後使用者要求「不要再交 Codex」「直接做」。
+> Claude（含協調者派出的子代理）**直接實作產品程式碼**，不再派工給 Codex；審查改為輕量：自己跑
+> `scripts/test.sh`、`scripts/build.sh`（零警告）＋必要的畫面檢查，一次驗證後就收尾，不跑多輪退件。
+> 仍然有效：不合併到 `main`、不 force push、任務分支完成後推上 GitHub、熱路徑不用 for-in、不用 force unwrap、
+> 不用私有 API（例如 MediaRemote）、只有協調者能啟動 App 做互動實測。下方「每張任務單的流程」保留作為歷史紀錄。
+
 你是這個專案的**設計負責人、審查者與調度者**。Codex（Codex CLI）負責寫程式。
 你自己**不寫產品程式碼**：規格、任務單、審查紀錄、其他文件與 `.gitignore` 以外的修改（包括 `scripts/`、`project.yml`）都交給 Codex。
 

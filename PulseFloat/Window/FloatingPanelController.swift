@@ -21,6 +21,20 @@ final class FloatingPanelController {
         chromeView.hud.onHide = { [weak self] in self?.hide() }
         panel.alphaValue = self.config.look.opacity
         installContentView()
+        observeFrame()
+    }
+
+    /// 移動或縮放後記住位置與大小；螢幕配置改變（接上／拔掉外接螢幕、改解析度）時夾回可用範圍。
+    private func observeFrame() {
+        let center = NotificationCenter.default
+        for name in [NSWindow.didMoveNotification, NSWindow.didResizeNotification] {
+            center.addObserver(forName: name, object: panel, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self.map { ConfigStore.saveWindowFrame($0.panel.frame) } }
+            }
+        }
+        center.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self.map { $0.panel.restoreFrame($0.panel.frame) } }
+        }
     }
 
     func show() {

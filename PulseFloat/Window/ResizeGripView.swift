@@ -1,4 +1,5 @@
 import AppKit
+import PulseFloatCore
 
 /// 16 × 16 pt 的縮放抓把；以螢幕座標拖曳並固定視窗左上角。
 @MainActor
@@ -28,8 +29,14 @@ final class ResizeGripView: NSView {
 
     override func mouseDragged(with event: NSEvent) {
         guard let startLocation, let window else { return }
-        let width = max(182, startFrame.width + NSEvent.mouseLocation.x - startLocation.x)
-        let height = width / 2.6
+        var width = max(WindowGeometry.minWidth, startFrame.width + NSEvent.mouseLocation.x - startLocation.x)
+        // 不超過螢幕上限，並讓右緣與下緣留在可用範圍內（左上角固定）。
+        if let visible = (window.screen ?? NSScreen.main)?.visibleFrame {
+            width = min(width, WindowGeometry.maxWidth(in: visible),
+                        max(WindowGeometry.minWidth, visible.maxX - startFrame.minX),
+                        max(WindowGeometry.minWidth, (startFrame.maxY - visible.minY) * WindowGeometry.aspect))
+        }
+        let height = width / WindowGeometry.aspect
         window.setFrame(NSRect(
             x: startFrame.minX,
             y: startFrame.maxY - height,
