@@ -18,11 +18,14 @@
 - `@unchecked Sendable`、`nonisolated(unsafe)` 只在必要時用，每一處加註解說明為何安全。
 - 非測試程式碼禁止 force unwrap、`try!`、`fatalError`（AppKit 要求的 `init(coder:)` 例外）。
 - `PulseFloatCore` 不能 import AppKit 或 SwiftUI。
+- 熱路徑（`analyze`、`process`、`fill`、IOProc、每幀繪圖的內層迴圈）**不要用 `for … in` 範圍迴圈**，改用 `while` 或 vDSP 批次運算：Debug（-Onone）建置下 Swift 6.3 的 `for … in Range` 每次迭代都會 malloc（已實測）。
 - DSP 熱路徑在初始化後的配置限制：`analyze`（與之後的 IOProc）**完全不配置記憶體**；`process` 只允許建立回傳 `SpectrumFrame` 的 values/peaks 兩個陣列。迴圈內不建立陣列、不用 `map`/`filter`/`reduce`、不做字串插值、不 `print`。
 - public API 都要有 `///` 文件註解（單位、範圍、執行緒假設）。
 - 不加第三方套件、不用私有 API、不改 `project.yml`（除非任務單允許）。
 - 不重新排版無關的程式碼，不留下除錯輸出或註解掉的程式碼。
 - 註解與 UI 字串可用繁體中文；識別字用英文。
+
+- **不要使用電腦操作（computer use）或任何 GUI 自動化工具**去操作使用者的桌面或啟動中的 App；實機 UI 驗收由審查者負責。
 
 ## 驗證（沙盒內可用的指令）
 
