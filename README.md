@@ -1,6 +1,8 @@
 # PulseFloat
 
-PulseFloat 是 macOS 選單列頻譜小工具，將系統播放的聲音呈現在桌面浮動視窗中（目前 T01 提供選單列 App 骨架與共用資料契約）。
+![PulseFloat](docs/design/cover.png)
+
+PulseFloat 是 macOS 選單列頻譜小工具，將系統播放的聲音呈現在桌面浮動視窗中。目前已完成 T01–T04：選單列迷你頻譜、四種主題的浮動視窗（毛玻璃／透明、可鎖定點擊穿透），以及用 Core Audio Process Tap 擷取系統音訊。
 
 ## 需求
 
