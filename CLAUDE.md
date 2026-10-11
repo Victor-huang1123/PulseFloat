@@ -34,12 +34,13 @@ open build/DerivedData/Build/Products/Debug/PulseFloat.app   # 實機檢查
    ```bash
    WT="$(cd ../PulseFloat-Txx && pwd)"   # 單一任務時 WT="$PWD"
    mkdir -p "$WT/.codex-runs"
-   codex exec -C "$WT" -s workspace-write -c model_reasoning_effort=high --json \
+   codex exec -C "$WT" -s workspace-write -m gpt-6-astra -c model_reasoning_effort=ultra --json \
      -o "$WT/.codex-runs/Txx-r1.md" \
      "實作 docs/tasks/Txx-<slug>.md。先讀 AGENTS.md、docs/SPEC.md 和任務單；只改任務單「範圍」內的檔案；完成前跑 scripts/test.sh 和 scripts/build.sh；不要 commit。最後依 AGENTS.md 的格式回報。" \
      > "$WT/.codex-runs/Txx-r1.jsonl" 2>&1
    ```
-   從 `.jsonl` 的第一個 thread/session 事件記下 session id，退件時用 `codex exec resume <id> "<審查意見>"` 接續同一個對話（在該 worktree 目錄下執行，並加 `-c sandbox_mode='"workspace-write"'`）。
+   從 `.jsonl` 的第一個 thread/session 事件記下 session id，退件時用 `codex exec resume <id> "<審查意見>"` 接續同一個對話（在該 worktree 目錄下執行，並加 `-m gpt-6-astra -c model_reasoning_effort=ultra -c sandbox_mode='"workspace-write"'`）。
+   - **模型固定用 gpt-6-astra、reasoning effort = ultra**（使用者指定；新派工與 resume 都要帶）。派工時 stdin 接 `< /dev/null`，避免 codex 等待 stdin。
 4. **審查**：照 `docs/REVIEW.md` 全流程。自己跑所有驗證，不採信 Codex 的回報。紀錄寫到 `docs/reviews/Txx.md`。
 5. **REVISE**：把編號問題清單交回 Codex（resume 同一個 session）→ 回到第 4 步。最多 3 輪，第 3 輪仍不過就停下來找使用者。
 6. **PASS**：
@@ -58,4 +59,4 @@ open build/DerivedData/Build/Products/Debug/PulseFloat.app   # 實機檢查
 ## 已知環境限制
 
 - Codex 沙盒（seatbelt, workspace-write）：`xcodebuild build`、`build-for-testing`、`xcrun xctest` 可以跑；`xcodebuild test` 會因 `testmanagerd` 被擋而失敗；不能寫 `~/Library`（所以一律用 `-derivedDataPath build/DerivedData`）。
-- 機器：macOS 27、Xcode 26.6（Swift 6.3）、XcodeGen 2.45、Codex CLI 0.162（模型 gpt-6-astra）。
+- 機器：macOS 27、Xcode 26.6（Swift 6.3）、XcodeGen 2.45、Codex CLI 0.162（模型 gpt-6-astra，effort ultra）。
