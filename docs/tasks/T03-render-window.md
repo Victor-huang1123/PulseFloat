@@ -57,14 +57,16 @@
 - 幾何、比例、透明度、線寬、陰影值一律照原型對應函式移植（`small` → `isThumbnail`）。只允許 Canvas 2D ↔ Core Graphics 的 API 對應差異：
   - `globalCompositeOperation = "lighter"` → `CGBlendMode.plusLighter`
   - `destination-out` 淡出 → `CGBlendMode.destinationOut` 填半透明黑
-  - `shadowBlur`/`shadowColor` → `setShadow(offset: .zero, blur:, color:)`（數值照抄即可）
+  - `shadowBlur`/`shadowColor` → `setShadow(offset: .zero, blur:, color:)`（數值照抄即可；neon 例外，見下方光暈 pass）
   - `roundRect` → `CGPath(roundedRect:…)`，半徑夾在寬高一半以內
 - `bandCount == 0`，或 values/peaks 長度不一致時：只清空、不畫柱、不 crash。
-- **NeonRenderer 的殘影**：renderer 自己持有一張 offscreen bitmap，每幀先淡出再疊加，最後畫回目標 context。
-  - bitmap 用 **16-bit half-float**：`bitsPerComponent: 16`、色彩空間 `CGColorSpace(name: CGColorSpace.extendedSRGB)`、`bitmapInfo = CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.floatComponents.rawValue | CGBitmapInfo.byteOrder16Little.rawValue`。8-bit 會讓 destinationOut 卡在 alpha 2/255，留下永久殘影（已實測）。
+- **NeonRenderer 的殘影與光暈**（第 1 輪審查後修訂）：
+  - **trail**（殘影）：renderer 自己持有一張 offscreen bitmap，每幀先 `destinationOut` 淡出再疊加，最後畫回目標 context。用 **16-bit half-float**：`bitsPerComponent: 16`、色彩空間 **`CGColorSpace(name: CGColorSpace.sRGB)`**（不要用 extendedSRGB：float context 的 plusLighter 不夾顏色，extendedSRGB 在 P3 螢幕上會爆白）、`bitmapInfo = CGImageAlphaInfo.premultipliedLast.rawValue | CGBitmapInfo.floatComponents.rawValue | CGBitmapInfo.byteOrder16Little.rawValue`。8-bit 會讓 destinationOut 卡在 alpha 2/255，留下永久殘影。
   - 大小 = `ceil(size.width·scale) × ceil(size.height·scale)` px；建立後套 `translateBy(x: 0, y: hPx)` + `scaleBy(x: scale, y: −scale)`（y 向下、單位 pt）；size 或 scale 改變就重建。
   - 合成回目標時**必須局部翻回**：`ctx.saveGState(); ctx.translateBy(x: 0, y: size.height); ctx.scaleBy(x: 1, y: -1); ctx.draw(image, in: CGRect(origin: .zero, size: size)); ctx.restoreGState()`。直接 `draw(_:in:)` 到 y 向下的 context 會上下顛倒。
   - 不要從 `context.ctm` 推算 scale（layer-backed view 的 `draw(_:)` 裡是 identity），一律用 `options.scale`。
+  - **光暈不用逐線 `setShadow`**（64 次陰影模糊 ≈ 14 ms／幀）。改用每幀一次的低解析度光暈 pass：glow buffer（8-bit premultiplied sRGB，`ceil(wPx/d) × ceil(hPx/d)`，`d = isThumbnail ? 1 : 4`）清空 → 以相同幾何（縮放 1/d）`plusLighter` 畫所有線段（不加陰影）→ `vImageTentConvolve_ARGB8888` 模糊（buffer 預先配置；σ_full = blur/2、blur = isThumbnail ? 3 : 14 + 10·bass（裝置像素）、σ_q = σ_full/d、tent 寬 W = 2b − 1、b = max(2, round(sqrt(6·σ_q² + 1)))）→ 以 `plusLighter`、`interpolationQuality = .medium` 放大畫進 trail → 再以 `plusLighter` 畫線段本體 → 水平線照舊。
+  - 效能：Release、520×200 pt @2x、全 1 frame ≤ 2 ms。
 - `RadialRenderer` 的中心圓盤：v1 不放專輯封面，照原型畫深色圓 + 漸層外框 + 隨 bass 變化的內圈。
 
 ### 3. 預覽訊號源（`PulseFloatCore/Preview/PreviewSpectrumSource.swift`）
