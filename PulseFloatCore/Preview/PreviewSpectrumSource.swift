@@ -1,4 +1,4 @@
-// 開發用預覽訊號源；T04 將由真正音訊與 DSP 的 VisualizerEngine 取代。
+// 決定性的預覽訊號源；App 已改用 LiveSpectrumSource（T04），這裡保留給設定預覽與測試。
 import Foundation
 
 /// 主執行緒使用的決定性音樂預覽；以 128 BPM 低頻脈衝與三個移動高斯峰產生 0...1 頻譜。

@@ -270,7 +270,7 @@ N = `bands.count`，f0 = `fMinHz`，f1 = `fMaxHz`：
 | [T01](tasks/T01-scaffold.md) | 專案骨架與共用契約 | – | – |
 | [T02](tasks/T02-dsp-core.md) | DSP 核心：頻帶、FFT、處理管線、模擬訊號 | T01 | 與 T03 平行 |
 | [T03](tasks/T03-render-window.md) | 繪圖、浮動視窗、選單列迷你頻譜 | T01 | 與 T02 平行 |
-| T04 | 系統音訊擷取（Process Tap）與 `VisualizerEngine` 整合 | T02、T03 | – |
+| [T04](tasks/T04-audio-engine.md) | 系統音訊擷取（Process Tap）與 `LiveSpectrumSource` 整合 | T02、T03 | – |
 | T05 | 快速面板、設定視窗、參數持久化、登入時啟動 | T03、T04 | – |
 | T06 | 效能、省電、減少動態效果、多螢幕 | T04、T05 | – |
 | T07 | 指定 App 擷取（per-process tap） | T04 | 可選 |

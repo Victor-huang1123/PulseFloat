@@ -11,9 +11,13 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private var lockItem: NSMenuItem?
     private var themeItems: [NSMenuItem] = []
     private var windowModeItems: [NSMenuItem] = []
+    private let audioStatus: () -> String
+    private let audioStatusItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
 
-    init(panelController: FloatingPanelController) {
+    /// audioStatus 在每次打開選單時呼叫，回傳目前音訊來源的說明文字。
+    init(panelController: FloatingPanelController, audioStatus: @escaping () -> String) {
         self.panelController = panelController
+        self.audioStatus = audioStatus
         statusItem = NSStatusBar.system.statusItem(withLength: 28)
         super.init()
 
@@ -58,6 +62,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         lockItem = lock
         menu.addItem(lock)
         menu.addItem(.separator())
+        audioStatusItem.isEnabled = false
+        menu.addItem(audioStatusItem)
+        menu.addItem(makeItem(title: "開啟「螢幕與系統錄音」設定…", action: #selector(openAudioCaptureSettings)))
+        menu.addItem(.separator())
         menu.addItem(makeItem(title: "關於 PulseFloat", action: #selector(showAbout)))
         let quitItem = NSMenuItem(title: "結束 PulseFloat", action: #selector(quit), keyEquivalent: "q")
         quitItem.keyEquivalentModifierMask = .command
@@ -76,6 +84,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
+        audioStatusItem.title = audioStatus()
         visibilityItem?.state = panelController.isVisible ? .on : .off
         lockItem?.state = panelController.isLocked ? .on : .off
         for item in themeItems {
@@ -143,6 +152,12 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         guard let rawValue = item.representedObject as? String,
               let mode = WindowMode(rawValue: rawValue) else { return }
         panelController.setWindowMode(mode)
+    }
+
+    /// 系統錄音權限沒有公開 API 可查詢或請求，只能帶使用者到系統設定（授權後可能需要重新啟動 App）。
+    @objc private func openAudioCaptureSettings() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") else { return }
+        NSWorkspace.shared.open(url)
     }
 
     @objc private func showAbout() {
