@@ -4,6 +4,9 @@ import PulseFloatCore
 import XCTest
 
 enum RenderTestSupport {
+    /// 原本四個 2D 主題；新主題各自有測試檔，不放進共用的通用測試。
+    static let legacyThemes: [ThemeID] = [.bars, .radial, .neon, .led]
+
     static let size = CGSize(width: 320, height: 120)
     static let fade = 1 - exp(-(1.0 / 60.0) / 0.07)
 

@@ -7,6 +7,11 @@ public enum RendererFactory {
         case .radial: RadialRenderer()
         case .neon: NeonRenderer()
         case .led: LedRenderer()
+        case .orbit: OrbitRenderer()
+        case .hud: HUDRenderer()
+        case .constellation: ConstellationRenderer()
+        case .mobius: MobiusRenderer(analysis: false)
+        case .analysis: MobiusRenderer(analysis: true)
         }
     }
 }

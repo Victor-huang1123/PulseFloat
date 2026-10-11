@@ -10,6 +10,36 @@ public enum ThemeID: String, CaseIterable, Codable, Sendable {
     case neon
     /// 極簡點陣。
     case led
+    /// 軌道：頻譜從發光的行星地平線升起（Pinterest 太空參考）。
+    case orbit
+    /// 儀表：太空船儀表與電路走線（Pinterest 太空參考）。
+    case hud
+    /// 星圖：頻段是星星，響亮的連成星座（Pinterest 太空參考）。
+    case constellation
+    /// 無限：3D 鰭片組成的 ∞ 雕塑（萊茵生命風格）。
+    case mobius
+    /// 解析：無限雕塑＋鏡頭運鏡、區段標註與字幕（萊茵生命宣傳片風格）。
+    case analysis
+}
+
+/// 3D 雕塑（無限、解析）的色彩風格；可跨執行緒傳遞。
+public enum SculptureStyle: String, CaseIterable, Codable, Sendable {
+    /// 瓷白（萊茵生命預設）。
+    case porcelain
+    /// 石墨。
+    case graphite
+    /// 極光漸層。
+    case aurora
+    /// 櫻花。
+    case sakura
+    /// 琥珀金屬。
+    case amber
+    /// 翡翠。
+    case jade
+    /// 霓虹。
+    case neon
+    /// 跟隨目前配色。
+    case palette
 }
 
 /// 漸層配色識別碼；可跨執行緒傳遞。
@@ -214,6 +244,8 @@ public struct VisualizerConfig: Codable, Equatable, Sendable {
         public var windowMode: WindowMode
         /// 視窗不透明度（無單位），範圍 0.3...1。
         public var opacity: Double
+        /// 3D 雕塑主題（無限、解析）的色彩風格。
+        public var sculptureStyle: SculptureStyle
 
         /// 建立設定；參數單位與範圍同各屬性，預設值來自原型；不自動夾值。
         public init(
@@ -223,7 +255,8 @@ public struct VisualizerConfig: Codable, Equatable, Sendable {
             reflection: Bool = true,
             barGap: Double = 0.28,
             windowMode: WindowMode = .card,
-            opacity: Double = 1.0
+            opacity: Double = 1.0,
+            sculptureStyle: SculptureStyle = .porcelain
         ) {
             self.theme = theme
             self.palette = palette
@@ -232,6 +265,7 @@ public struct VisualizerConfig: Codable, Equatable, Sendable {
             self.barGap = barGap
             self.windowMode = windowMode
             self.opacity = opacity
+            self.sculptureStyle = sculptureStyle
         }
 
         private enum CodingKeys: String, CodingKey {
@@ -242,6 +276,7 @@ public struct VisualizerConfig: Codable, Equatable, Sendable {
             case barGap
             case windowMode
             case opacity
+            case sculptureStyle
         }
 
         /// 解碼缺少、null 或型別不符的欄位時補預設值；未知 key 忽略，有效數值保留原值。
@@ -258,6 +293,8 @@ public struct VisualizerConfig: Codable, Equatable, Sendable {
             let windowModeValue = (try? container.decodeIfPresent(String.self, forKey: .windowMode))
             windowMode = windowModeValue.flatMap(WindowMode.init(rawValue:)) ?? defaults.windowMode
             opacity = (try? container.decodeIfPresent(Double.self, forKey: .opacity)) ?? defaults.opacity
+            let styleValue = (try? container.decodeIfPresent(String.self, forKey: .sculptureStyle))
+            sculptureStyle = styleValue.flatMap(SculptureStyle.init(rawValue:)) ?? defaults.sculptureStyle
         }
     }
 

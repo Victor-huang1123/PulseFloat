@@ -62,7 +62,9 @@ final class VisualizerView: NSView {
             look: look,
             options: RenderOptions(
                 fade: 1 - exp(-latestDT / 0.07),
-                scale: window?.backingScaleFactor ?? 2
+                scale: window?.backingScaleFactor ?? 2,
+                dt: latestDT,
+                sculptureStyle: look.sculptureStyle
             )
         )
     }

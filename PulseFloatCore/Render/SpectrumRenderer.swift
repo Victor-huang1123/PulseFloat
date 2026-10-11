@@ -21,11 +21,18 @@ public struct RenderOptions: Sendable {
     public var fade: Double
     /// 點轉像素的正倍率；由 view 的 backingScaleFactor 提供，測試通常為 1 或 2。
     public var scale: CGFloat
+    /// 距離上一幀的秒數（0...0.05）；需要時間的主題（衛星、脈衝、鏡頭）用它前進，靜音時不得產生動作。
+    public var dt: Double
+    /// 3D 雕塑主題的色彩風格（2D 備援與縮圖也用它上色）。
+    public var sculptureStyle: SculptureStyle
 
     /// 建立繪圖選項，不改變輸入；呼叫端須提供有限的正 scale 與 0...1 的 fade。
-    public init(isThumbnail: Bool = false, fade: Double, scale: CGFloat = 1) {
+    public init(isThumbnail: Bool = false, fade: Double, scale: CGFloat = 1, dt: Double = 1.0 / 60,
+                sculptureStyle: SculptureStyle = .porcelain) {
         self.isThumbnail = isThumbnail
         self.fade = fade
         self.scale = scale
+        self.dt = dt
+        self.sculptureStyle = sculptureStyle
     }
 }

@@ -10,7 +10,7 @@ final class RenderPerformanceTests: XCTestCase {
         let frame = RenderTestSupport.frame()
         let look = VisualizerConfig.Look()
         let options = RenderOptions(fade: RenderTestSupport.fade, scale: 2)
-        for theme in ThemeID.allCases {
+        for theme in RenderTestSupport.legacyThemes {
             let bitmap = try RenderTestSupport.Bitmap(size: size, scale: 2)
             let renderer = RendererFactory.make(theme: theme)
             // 一次性的 buffer 建立與配色快取不計入每幀預算。

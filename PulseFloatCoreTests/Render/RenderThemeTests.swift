@@ -6,7 +6,7 @@ import XCTest
 @MainActor
 final class RenderThemeTests: XCTestCase {
     func testFullFramesFillAtLeastTenPercentForEveryThemeAndThumbnail() async throws {
-        for theme in ThemeID.allCases {
+        for theme in RenderTestSupport.legacyThemes {
             for thumbnail in [false, true] {
                 let bitmap = try RenderTestSupport.Bitmap()
                 let renderer = RendererFactory.make(theme: theme)
@@ -195,7 +195,7 @@ final class RenderThemeTests: XCTestCase {
             SpectrumFrame(values: [1, 1], peaks: [1], bass: 1),
             SpectrumFrame(values: [], peaks: [1], bass: 1)
         ]
-        for theme in ThemeID.allCases {
+        for theme in RenderTestSupport.legacyThemes {
             for frame in invalid {
                 let renderer = RendererFactory.make(theme: theme)
                 let bitmap = try RenderTestSupport.Bitmap()
@@ -214,7 +214,7 @@ final class RenderThemeTests: XCTestCase {
     }
 
     func testZeroAndTinySizesDoNotCrash() async throws {
-        for theme in ThemeID.allCases {
+        for theme in RenderTestSupport.legacyThemes {
             let renderer = RendererFactory.make(theme: theme)
             let bitmap = try RenderTestSupport.Bitmap()
             for size in [CGSize.zero, CGSize(width: 1, height: 1), CGSize(width: 2, height: 1)] {
@@ -230,7 +230,7 @@ final class RenderThemeTests: XCTestCase {
         let malformed = SpectrumFrame(values: [.nan, .infinity, -.infinity, 2],
                                       peaks: [.nan, .infinity, -.infinity, 2], bass: .nan)
         let clamped = SpectrumFrame(values: [0, 1, 0, 1], peaks: [0, 1, 0, 1], bass: 0)
-        for theme in ThemeID.allCases {
+        for theme in RenderTestSupport.legacyThemes {
             let actual = try RenderTestSupport.Bitmap()
             let expected = try RenderTestSupport.Bitmap()
             RendererFactory.make(theme: theme).draw(

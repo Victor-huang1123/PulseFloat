@@ -201,6 +201,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         case .radial: "圓環放射"
         case .neon: "霓虹光暈"
         case .led: "極簡點陣"
+        case .orbit: "軌道 Orbit"
+        case .hud: "儀表 HUD"
+        case .constellation: "星圖 Constellation"
+        case .mobius: "無限 Möbius（3D）"
+        case .analysis: "解析 Analysis OS（3D）"
         }
     }
 
