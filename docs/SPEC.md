@@ -95,7 +95,7 @@ PulseFloat/
 
 - **音訊執行緒**（Core Audio IOProc）只做一件事：把 PCM 降成單聲道寫進 ring buffer。不配置記憶體、不上鎖、不碰 Swift actor、不呼叫 Objective-C；IOProc block 必須是 `@Sendable` / nonisolated（見 §8）。
 - **主執行緒**每個 display frame：從 ring buffer 取最新 4096 個樣本 → `SpectrumAnalyzer` → `SpectrumPipeline.process(dt:)` → 得到 `SpectrumFrame` → 交給所有 renderer。64 頻帶的分析+處理在主執行緒上成本極低（預算見 §9）。
-- 權限被拒時 tap 只會送全 0 的 buffer（沒有公開 API 能查詢權限），所以「沒權限」與「靜音」走同一條規則：輸入連續 2 秒低於 −90 dBFS 就切到 `SimulatedSpectrum`，有聲音後自動切回（T04 定細節）。
+- **沒有聲音就不動**（使用者回饋，2026-10-11）：靜音或權限被拒（tap 只送全 0）時柱子自然落回最低點，不顯示模擬動畫；0.25 秒沒有新樣本時改餵 −160 dB。`SimulatedSpectrum` 只保留給設定預覽與測試。選單顯示目前是否有聲音，並提供開啟錄音權限設定的入口。
 - 每幀只有一個驅動者（App 層的 `FrameClock`，T03 建立）呼叫一次 `SpectrumSource.nextFrame(dt:)`，同一份 `SpectrumFrame` 分送給所有 renderer。
 
 ### 4.1 共用契約（T01 建立，之後所有任務共用；修改要經過設計負責人）
@@ -160,7 +160,7 @@ public protocol SpectrumSource: AnyObject {
 | look.mirror | Bool | – | 直條上下鏡像 |
 | look.reflection | Bool | – | 直條倒影 |
 | look.barGap | Double | 0.05…0.6 | 柱間距（佔 pitch 比例） |
-| look.windowMode | enum | card / bare | 毛玻璃卡片 / 全透明 |
+| look.windowMode | enum | card / bare | 毛玻璃卡片 / 全透明（JSON 預設沿用原型的 card；**App 啟動預設 bare**） |
 | look.opacity | Double | 0.3…1 | 視窗透明度 |
 | menubar.style | enum | bars / dots | 選單列圖示樣式 |
 | menubar.count | Int | 5…9 | 選單列柱數 |

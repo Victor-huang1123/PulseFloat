@@ -23,7 +23,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         UserDefaults.standard.register(defaults: [Self.dockIconKey: true])
         NSApp.mainMenu = makeMainMenu()
         applyDockIconPreference()
-        let floatingPanel = FloatingPanelController()
+        // App 預設用透明視窗（VisualizerConfig.default 維持原型參數，供 JSON 相容與測試）。
+        var initialConfig = VisualizerConfig.default
+        initialConfig.look.windowMode = .bare
+        let floatingPanel = FloatingPanelController(config: initialConfig)
         let ring = SampleRingBuffer()
         let source = LiveSpectrumSource(config: floatingPanel.config, ring: ring)
         let tap = SystemAudioTap(ring: ring)
@@ -99,10 +102,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private static func audioStatusTitle(mode: LiveSpectrumSource.Mode?, tapState: SystemAudioTap.State?) -> String {
-        if case .failed = tapState { return "音訊來源：模擬訊號（無法擷取系統音訊）" }
+        if case .failed = tapState { return "音訊來源：無法擷取系統音訊" }
         switch mode {
-        case .live: return "音訊來源：系統音訊"
-        case .simulated, nil: return "音訊來源：模擬訊號（沒有聲音或尚未授權）"
+        case .live: return "音訊來源：系統音訊（播放中）"
+        case .silent, nil: return "音訊來源：目前沒有聲音（若播放中仍沒反應，請檢查錄音權限）"
         }
     }
 }

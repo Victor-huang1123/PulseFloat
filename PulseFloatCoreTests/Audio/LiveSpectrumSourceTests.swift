@@ -23,14 +23,17 @@ final class LiveSpectrumSourceTests: XCTestCase {
         chunk.withUnsafeBufferPointer { ring.write($0.baseAddress!, count: chunk.count) }
     }
 
-    func testStartsInSimulationAndProducesFramesWithoutAudio() {
+    private func maxValue(_ frame: SpectrumFrame) -> Float { frame.values.max() ?? 0 }
+
+    func testStartsSilentAndStaysFlatWithoutAudio() {
         let source = LiveSpectrumSource(ring: SampleRingBuffer(), sampleRate: sampleRate)
-        XCTAssertEqual(source.mode, .simulated)
+        XCTAssertEqual(source.mode, .silent)
         var frame = source.nextFrame(dt: 0)
-        for _ in 0..<30 { frame = source.nextFrame(dt: frameDt) }
-        XCTAssertEqual(source.mode, .simulated)
+        for _ in 0..<120 { frame = source.nextFrame(dt: frameDt) }
+        XCTAssertEqual(source.mode, .silent)
         XCTAssertEqual(frame.bandCount, 64)
-        XCTAssertGreaterThan(frame.values.max() ?? 0, 0.1, "沒有音訊時要顯示模擬頻譜")
+        XCTAssertEqual(maxValue(frame), 0, "沒有聲音時不能有任何跳動")
+        XCTAssertEqual(frame.peaks.max() ?? 0, 0)
     }
 
     func testAudibleInputSwitchesToLiveAndPeaksAtTheSineBand() {
@@ -50,7 +53,7 @@ final class LiveSpectrumSourceTests: XCTestCase {
         XCTAssertGreaterThan(frame.values[37], frame.values[10] + 0.3)
     }
 
-    func testSilenceSwitchesBackToSimulationAfterTwoSeconds() {
+    func testDigitalSilenceDropsBarsToZeroAndReportsSilentAfterTwoSeconds() {
         let ring = SampleRingBuffer()
         let source = LiveSpectrumSource(ring: ring, sampleRate: sampleRate)
         var phase = 0
@@ -59,44 +62,51 @@ final class LiveSpectrumSourceTests: XCTestCase {
             _ = source.nextFrame(dt: frameDt)
         }
         XCTAssertEqual(source.mode, .live)
-        // 1.9 秒的靜音：仍是 live（歌曲之間的短暫停頓不該切換）。
+        var frame = source.nextFrame(dt: 0)
+        // 1.9 秒的靜音：柱子已經落下，但狀態仍是 live（歌曲之間的短暫停頓不改選單文字）。
         for _ in 0..<114 {
             writeSilence(ring, seconds: frameDt)
-            _ = source.nextFrame(dt: frameDt)
+            frame = source.nextFrame(dt: frameDt)
         }
         XCTAssertEqual(source.mode, .live)
+        XCTAssertLessThan(maxValue(frame), 0.01, "靜音後柱子要落下")
         for _ in 0..<12 {
             writeSilence(ring, seconds: frameDt)
-            _ = source.nextFrame(dt: frameDt)
+            frame = source.nextFrame(dt: frameDt)
         }
-        XCTAssertEqual(source.mode, .simulated)
-        // 有聲音後立即切回。
+        XCTAssertEqual(source.mode, .silent)
+        XCTAssertLessThan(maxValue(frame), 0.001)
+        // 有聲音後立即恢復。
         writeSine(ring, seconds: 0.1, amplitude: 0.5, phase: &phase)
-        _ = source.nextFrame(dt: frameDt)
+        frame = source.nextFrame(dt: frameDt)
         XCTAssertEqual(source.mode, .live)
+        XCTAssertGreaterThan(maxValue(frame), 0.05)
     }
 
-    func testStalledInputCountsAsSilence() {
-        // tap 停止（沒有新樣本）時，即使緩衝裡留著有聲音的資料，也要在 2 秒後回到模擬訊號。
+    func testStalledInputFeedsSilenceInsteadOfFreezingOnOldAudio() {
+        // tap 停止（沒有新樣本）時，即使緩衝裡留著有聲音的資料，柱子也要落下。
         let ring = SampleRingBuffer()
         let source = LiveSpectrumSource(ring: ring, sampleRate: sampleRate)
         var phase = 0
         writeSine(ring, seconds: 0.2, amplitude: 0.5, phase: &phase)
-        _ = source.nextFrame(dt: frameDt)
+        var frame = source.nextFrame(dt: frameDt)
         XCTAssertEqual(source.mode, .live)
-        for _ in 0..<160 { _ = source.nextFrame(dt: frameDt) }
-        XCTAssertEqual(source.mode, .simulated)
+        for _ in 0..<160 { frame = source.nextFrame(dt: frameDt) }
+        XCTAssertEqual(source.mode, .silent)
+        XCTAssertLessThan(maxValue(frame), 0.001)
     }
 
     func testVeryQuietInputBelowMinus90DbfsIsSilence() {
         let ring = SampleRingBuffer()
         let source = LiveSpectrumSource(ring: ring, sampleRate: sampleRate)
         var phase = 0
+        var frame = source.nextFrame(dt: 0)
         for _ in 0..<150 {
             writeSine(ring, seconds: frameDt, amplitude: 2e-5, phase: &phase) // ≈ −94 dBFS
-            _ = source.nextFrame(dt: frameDt)
+            frame = source.nextFrame(dt: frameDt)
         }
-        XCTAssertEqual(source.mode, .simulated)
+        XCTAssertEqual(source.mode, .silent)
+        XCTAssertEqual(maxValue(frame), 0, "低於 gate 的訊號不顯示")
     }
 
     func testSampleRateAndBandConfigurationUpdates() {
