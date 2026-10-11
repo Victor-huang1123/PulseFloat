@@ -26,18 +26,30 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let isDockIconVisible: () -> Bool
     private let setDockIconVisible: (Bool) -> Void
     private var dockIconItem: NSMenuItem?
+    private let isNowPlayingArtworkEnabled: () -> Bool
+    private let setNowPlayingArtworkEnabled: (Bool) -> Void
+    private let nowPlayingSummary: () -> String?
+    private var nowPlayingArtworkItem: NSMenuItem?
+    private let nowPlayingInfoItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
 
     /// audioStatus 在每次打開選單時呼叫，回傳目前音訊來源的說明文字；Dock 圖示的顯示狀態由 App 層保存。
+    /// 「圓環中央顯示封面」的開關同樣由 App 層保存；nowPlayingSummary 回傳「App — 歌名 · 歌手」，不知道時回傳 nil。
     init(
         panelController: FloatingPanelController,
         audioStatus: @escaping () -> String,
         isDockIconVisible: @escaping () -> Bool,
-        setDockIconVisible: @escaping (Bool) -> Void
+        setDockIconVisible: @escaping (Bool) -> Void,
+        isNowPlayingArtworkEnabled: @escaping () -> Bool,
+        setNowPlayingArtworkEnabled: @escaping (Bool) -> Void,
+        nowPlayingSummary: @escaping () -> String?
     ) {
         self.panelController = panelController
         self.audioStatus = audioStatus
         self.isDockIconVisible = isDockIconVisible
         self.setDockIconVisible = setDockIconVisible
+        self.isNowPlayingArtworkEnabled = isNowPlayingArtworkEnabled
+        self.setNowPlayingArtworkEnabled = setNowPlayingArtworkEnabled
+        self.nowPlayingSummary = nowPlayingSummary
         statusItem = NSStatusBar.system.statusItem(withLength: 28)
         super.init()
 
@@ -66,6 +78,14 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let themeItem = NSMenuItem(title: "主題", action: nil, keyEquivalent: "")
         themeItem.submenu = themes
         menu.addItem(themeItem)
+
+        let artwork = makeItem(title: "圓環中央顯示封面（正在播放的音樂／影片）", action: #selector(toggleNowPlayingArtwork))
+        nowPlayingArtworkItem = artwork
+        menu.addItem(artwork)
+        nowPlayingInfoItem.isEnabled = false
+        nowPlayingInfoItem.isHidden = true
+        nowPlayingInfoItem.indentationLevel = 1
+        menu.addItem(nowPlayingInfoItem)
 
         let modes = NSMenu()
         modes.autoenablesItems = false
@@ -146,6 +166,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         audioStatusItem.title = audioStatus()
         dockIconItem?.state = isDockIconVisible() ? .on : .off
+        let artworkEnabled = isNowPlayingArtworkEnabled()
+        nowPlayingArtworkItem?.state = artworkEnabled ? .on : .off
+        let summary = artworkEnabled ? nowPlayingSummary() : nil
+        nowPlayingInfoItem.title = summary.map { "正在播放：\($0)" } ?? ""
+        nowPlayingInfoItem.isHidden = summary == nil
         visibilityItem?.state = panelController.isVisible ? .on : .off
         lockItem?.state = panelController.isLocked ? .on : .off
         for item in themeItems {
@@ -365,6 +390,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     @objc private func toggleDockIcon() {
         setDockIconVisible(!isDockIconVisible())
+    }
+
+    @objc private func toggleNowPlayingArtwork() {
+        setNowPlayingArtworkEnabled(!isNowPlayingArtworkEnabled())
     }
 
     @objc private func toggleLock() {

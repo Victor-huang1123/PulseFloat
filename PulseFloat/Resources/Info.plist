@@ -24,6 +24,8 @@
 	<string>public.app-category.music</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>PulseFloat 只會讀取正在播放的歌曲或影片名稱與封面，顯示在圓環中央；不會控制播放，也不會上傳任何資料。</string>
 	<key>NSAudioCaptureUsageDescription</key>
 	<string>PulseFloat 需要讀取系統正在播放的聲音，才能即時畫出頻譜。聲音只在本機分析，不會錄音或上傳。</string>
 </dict>
