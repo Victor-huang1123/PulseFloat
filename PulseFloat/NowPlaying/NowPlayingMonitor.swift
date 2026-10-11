@@ -164,7 +164,11 @@ final class NowPlayingMonitor {
         switch info {
         case .notPermitted:
             deniedBundleIDs.insert(app.bundleID)
-            showIcon(for: app)
+            if app.viaWebKit { clearArtwork() } else { showIcon(for: app) }
+        case .nothing where app.viaWebKit:
+            // WebKit 的聲音不一定來自 Safari（例如 Safari 網頁 App「YT Music」）：Safari 沒有 YouTube 分頁時不要亂掛 Safari 圖示。
+            summary = nil
+            clearArtwork()
         case .nothing:
             summary = NowPlayingParsing.menuSummary(appName: app.name, title: nil, artist: nil)
             // 音樂 App 暫停時保留目前的封面，等 3 秒沒聲音再清掉；瀏覽器則代表不是 YouTube，改顯示圖示。
@@ -231,6 +235,11 @@ final class NowPlayingMonitor {
             image = rendered
         }
         publish(CenterArtwork(id: "icon:\(app.bundleID)", image: image, kind: .appIcon))
+    }
+
+    private func clearArtwork() {
+        trackIdentity = nil
+        publish(nil)
     }
 
     private func publish(_ artwork: CenterArtwork?) {

@@ -10,6 +10,8 @@ struct NowPlayingApp: Equatable, Sendable {
     let name: String
     /// .app 的絕對路徑，用來取得 App 圖示。
     let path: String
+    /// 聲音來自共用的 WebKit GPU 程序，只是「推測」是 Safari（也可能是 Safari 網頁 App、郵件等其他 WebKit App）。
+    var viaWebKit = false
 
     var kind: NowPlayingParsing.SourceKind { NowPlayingParsing.sourceKind(appBundleID: bundleID) }
 }
@@ -35,7 +37,8 @@ final class AudioOwnerResolver {
             return NowPlayingApp(
                 bundleID: "com.apple.Safari",
                 name: safari.localizedName ?? "Safari",
-                path: safari.bundleURL?.path ?? "/Applications/Safari.app"
+                path: safari.bundleURL?.path ?? "/Applications/Safari.app",
+                viaWebKit: true
             )
         case .candidate:
             if let entry = cache[process.pid] { return entry.app }
