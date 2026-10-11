@@ -13,6 +13,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private var windowModeItems: [NSMenuItem] = []
     private var paletteItems: [NSMenuItem] = []
     private var coloredIconItem: NSMenuItem?
+    private var styleItems: [NSMenuItem] = []
     private let opacitySlider = NSSlider(value: 1, minValue: 0.3, maxValue: 1, target: nil, action: nil)
     private let opacityLabel = NSTextField(labelWithString: "透明度")
     private let audioStatus: () -> String
@@ -89,6 +90,19 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         paletteItem.submenu = palettes
         menu.addItem(paletteItem)
 
+        let styles = NSMenu()
+        styles.autoenablesItems = false
+        for style in SculptureStyle.allCases {
+            let item = makeItem(title: Self.title(for: style), action: #selector(selectSculptureStyle(_:)))
+            item.representedObject = style.rawValue
+            item.image = Self.swatch(for: style)
+            styles.addItem(item)
+            styleItems.append(item)
+        }
+        let styleItem = NSMenuItem(title: "雕塑色彩（3D 主題）", action: nil, keyEquivalent: "")
+        styleItem.submenu = styles
+        menu.addItem(styleItem)
+
         menu.addItem(makeOpacityItem())
 
         let lock = makeItem(title: "鎖定並點擊穿透", action: #selector(toggleLock))
@@ -129,6 +143,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         }
         for item in paletteItems {
             item.state = (item.representedObject as? String) == panelController.config.look.palette.rawValue ? .on : .off
+        }
+        for item in styleItems {
+            item.state = (item.representedObject as? String) == panelController.config.look.sculptureStyle.rawValue ? .on : .off
         }
         coloredIconItem?.state = panelController.config.menubar.colored ? .on : .off
         opacitySlider.doubleValue = panelController.config.look.opacity
@@ -201,6 +218,38 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         return image
     }
 
+    private static func title(for style: SculptureStyle) -> String {
+        switch style {
+        case .porcelain: "白瓷 Porcelain"
+        case .graphite: "石墨 Graphite"
+        case .aurora: "極光 Aurora"
+        case .sakura: "櫻花 Sakura"
+        case .amber: "琥珀 Amber"
+        case .jade: "翡翠 Jade"
+        case .neon: "霓虹 Neon"
+        case .palette: "跟隨配色"
+        }
+    }
+
+    /// 雕塑色彩的色票：材質底色的三段漸層，中間點綴強調色。
+    private static func swatch(for style: SculptureStyle) -> NSImage {
+        let colors = SculptureStyleColors.of(style)
+        func ns(_ c: RGB) -> NSColor {
+            NSColor(srgbRed: CGFloat(c.red) / 255, green: CGFloat(c.green) / 255, blue: CGFloat(c.blue) / 255, alpha: 1)
+        }
+        return NSImage(size: NSSize(width: 28, height: 12), flipped: false) { rect in
+            let path = NSBezierPath(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), xRadius: 3, yRadius: 3)
+            let stops = [0.0, 0.5, 1.0].map { ns(colors.baseColor(at: $0, palette: .lab)) }
+            NSGradient(colors: stops)?.draw(in: path, angle: 0)
+            ns(colors.accent).setFill()
+            NSBezierPath(ovalIn: NSRect(x: rect.midX - 2.5, y: rect.midY - 2.5, width: 5, height: 5)).fill()
+            NSColor.black.withAlphaComponent(0.15).setStroke()
+            path.lineWidth = 0.5
+            path.stroke()
+            return true
+        }
+    }
+
     private static func title(for theme: ThemeID) -> String {
         switch theme {
         case .bars: "經典直條"
@@ -237,6 +286,12 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         guard let rawValue = item.representedObject as? String,
               let palette = PaletteID(rawValue: rawValue) else { return }
         panelController.setPalette(palette)
+    }
+
+    @objc private func selectSculptureStyle(_ item: NSMenuItem) {
+        guard let rawValue = item.representedObject as? String,
+              let style = SculptureStyle(rawValue: rawValue) else { return }
+        panelController.setSculptureStyle(style)
     }
 
     /// 選單裡的「透明度」滑桿（30%–100%），拖曳時即時套用；選單在拖曳時保持開啟。

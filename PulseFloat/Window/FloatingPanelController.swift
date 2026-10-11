@@ -68,6 +68,14 @@ final class FloatingPanelController {
         onConfigChange?(config)
     }
 
+    /// 3D 雕塑主題（無限、解析）的材質色彩；其他主題不受影響。
+    func setSculptureStyle(_ style: SculptureStyle) {
+        guard config.look.sculptureStyle != style else { return }
+        config.look.sculptureStyle = style
+        visualizerView.update(config: config)
+        onConfigChange?(config)
+    }
+
     /// 浮動視窗整體不透明度（0.3...1，超出會被夾住）；即時套用並存檔。
     func setOpacity(_ opacity: Double) {
         var next = config
